@@ -3,7 +3,9 @@
   "appId": "1:630087153343:web:2acc7cef3212b66d81f80a",
   "apiKey": "AIzaSyBofQx8seTAl_4xK2eyc9CO1CDvgKGr2LQ",
   "authDomain": "deposit-app-f8a98.firebaseapp.com",
-  "firestoreDatabaseId": "",
+  "firestoreDatabaseId": "ai-studio-dc6a0731-afbc-4762-83ae-84c55e298280",
+  "databaseId": "ai-studio-dc6a0731-afbc-4762-83ae-84c55e298280",
+  "database": "ai-studio-dc6a0731-afbc-4762-83ae-84c55e298280",
   "storageBucket": "deposit-app-f8a98.firebasestorage.app",
   "messagingSenderId": "630087153343",
   "measurementId": ""
