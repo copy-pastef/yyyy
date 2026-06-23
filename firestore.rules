@@ -39,7 +39,7 @@ service cloud.firestore {
     // Collection: Users
     match /users/{userId} {
       allow get: if isSignedIn() && (request.auth.uid == userId || isAdmin());
-      allow list: if isSignedIn() && (resource.data.referredBy == request.auth.uid || isAdmin());
+      allow list: if isSignedIn();
       allow create: if isSignedIn() && request.auth.uid == userId;
       allow update: if isSignedIn() && (request.auth.uid == userId || isAdmin());
       allow delete: if isAdmin();

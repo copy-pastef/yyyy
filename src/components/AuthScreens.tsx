@@ -77,28 +77,38 @@ export default function AuthScreens({ onAuthSuccess, primaryColor, theme }: Auth
 
     setLoading(true);
     try {
-      // 1. Verify if referrer code actually exists
-      let referredByUid = '';
-      if (refCode.trim()) {
-        const usersRef = collection(db, 'users');
-        const q = query(usersRef, where('referralCode', '==', refCode.trim()));
-        const querySnap = await getDocs(q);
-        
-        if (!querySnap.empty) {
-          referredByUid = querySnap.docs[0].id;
-        } else {
-          setError('Invalid Referral Code. You can leave it blank if you do not have one.');
-          setLoading(false);
-          return;
-        }
-      }
-
-      // 2. Create in Firebase Auth
+      // 1. Create in Firebase Auth first (user becomes authenticated so we can query database safely)
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const uid = userCredential.user.uid;
 
       // Generate a unique 6-character referral code
       const generatedRefCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+
+      // 2. Verify if referrer code actually exists
+      let referredByUid = '';
+      if (refCode.trim()) {
+        try {
+          const usersRef = collection(db, 'users');
+          const q = query(usersRef, where('referralCode', '==', refCode.trim()));
+          const querySnap = await getDocs(q);
+          
+          if (!querySnap.empty) {
+            referredByUid = querySnap.docs[0].id;
+          } else {
+            // Delete the auth user so we don't leave half-created state
+            await userCredential.user.delete();
+            setError('Invalid Referral Code. You can leave it blank if you do not have one.');
+            setLoading(false);
+            return;
+          }
+        } catch (dbErr: any) {
+          console.error("Firestore referral query error:", dbErr);
+          await userCredential.user.delete();
+          setError('⚠️ Firestore Database Error! আপনার Firebase Console-এ Firestore Database তৈরি করা হয়নি। দয়া করে Firestore Database তৈরি করে নিন।');
+          setLoading(false);
+          return;
+        }
+      }
 
       // Create profile document
       const newProfile: UserProfile = {
@@ -120,17 +130,25 @@ export default function AuthScreens({ onAuthSuccess, primaryColor, theme }: Auth
         createdAt: Date.now()
       };
 
-      await setDoc(doc(db, 'users', uid), newProfile);
+      try {
+        await setDoc(doc(db, 'users', uid), newProfile);
 
-      // Create initial Welcome Notification
-      await setDoc(doc(db, 'notifications', `${uid}_welcome`), {
-        id: `${uid}_welcome`,
-        uid,
-        title: 'Welcome to Smart Deposit Platform!',
-        message: `Hello ${fullName}, your account was successfully created! Verify your phone and email to maximize security and participate in support.`,
-        read: false,
-        createdAt: Date.now()
-      });
+        // Create initial Welcome Notification
+        await setDoc(doc(db, 'notifications', `${uid}_welcome`), {
+          id: `${uid}_welcome`,
+          uid,
+          title: 'Welcome to Smart Deposit Platform!',
+          message: `Hello ${fullName}, your account was successfully created! Verify your phone and email to maximize security and participate in support.`,
+          read: false,
+          createdAt: Date.now()
+        });
+      } catch (dbErr: any) {
+        console.error("Firestore write error during registration:", dbErr);
+        await userCredential.user.delete();
+        setError('⚠️ Firestore Database Error! আপনার Firebase Console-এ Firestore Database তৈরি করা হয়নি।\n\nসমাধান:\n1. Firebase Console-এ যান।\n2. Build -> "Firestore Database" এ ক্লিক করুন।\n3. "Create database" এ ক্লিক করে ডাটাবেজ তৈরি করুন।');
+        setLoading(false);
+        return;
+      }
 
       // Clear states
       setFullName('');
@@ -143,8 +161,11 @@ export default function AuthScreens({ onAuthSuccess, primaryColor, theme }: Auth
       onAuthSuccess(newProfile);
     } catch (err: any) {
       console.error(err);
-      if (err.code === 'auth/operation-not-allowed' || (err.message && err.message.includes('operation-not-allowed'))) {
+      const errStr = String(err.message || err);
+      if (err.code === 'auth/operation-not-allowed' || errStr.includes('operation-not-allowed')) {
         setError('⚠️ Email/Password are disabled in Firebase Console! আপনার Firebase প্রজেক্টে Email/Password সাইন-ইন সচল করুন:\n\n1. Firebase Console-এ যান।\n2. Build -> Authentication -> Sign-in method-এ ক্লিক করুন।\n3. "Add new provider"-এ ক্লিক করে "Email/Password" নির্বাচন করে সচল (Enable) করে Save করুন।');
+      } else if (errStr.includes('permission') || errStr.includes('not-found') || errStr.includes('database')) {
+        setError('⚠️ Firestore Database Error! আপনার Firebase Console-এ Firestore Database তৈরি করা হয়নি।\n\nসমাধান:\n1. Firebase Console-এ যান।\n2. Build -> "Firestore Database" এ যান।\n3. "Create database" এ ক্লিক করে ডাটাবেজটি তৈরি করে নিন।');
       } else {
         setError(err.message || 'Error occurred during registration.');
       }
