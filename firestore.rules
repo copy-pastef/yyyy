@@ -1,0 +1,109 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Reusable Security Helpers
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin') ||
+        (request.auth.token.email != null && request.auth.token.email.toLowerCase() == "boybeby888@gmail.com") ||
+        (request.auth.token.email != null && request.auth.token.email.toLowerCase() == "admin@smartdeposit.com")
+      );
+    }
+
+    // Collection: System Settings
+    match /system_settings/{id} {
+      allow read: if true;
+      allow create: if true;
+      allow update: if isAdmin();
+      allow delete: if false;
+    }
+
+    // Collection: Investment Plans
+    match /investment_plans/{planId} {
+      allow read: if true;
+      allow create: if true;
+      allow update, delete: if isAdmin();
+    }
+
+    // Collection: Users
+    match /users/{userId} {
+      allow get: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+      allow list: if isSignedIn() && (resource.data.referredBy == request.auth.uid || isAdmin());
+      allow create: if isSignedIn() && request.auth.uid == userId;
+      allow update: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    // Collection: User Investments
+    match /user_investments/{investmentId} {
+      allow read: if isSignedIn() && (resource.data.uid == request.auth.uid || isAdmin());
+      allow create: if isSignedIn() && request.resource.data.uid == request.auth.uid;
+      allow update: if isSignedIn() && (resource.data.uid == request.auth.uid || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    // Collection: Deposit Requests
+    match /deposit_requests/{requestId} {
+      allow read: if isSignedIn() && (resource.data.uid == request.auth.uid || isAdmin());
+      allow create: if isSignedIn() && request.resource.data.uid == request.auth.uid;
+      allow update: if isSignedIn() && (resource.data.uid == request.auth.uid || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    // Collection: Withdraw Requests
+    match /withdraw_requests/{requestId} {
+      allow read: if isSignedIn() && (resource.data.uid == request.auth.uid || isAdmin());
+      allow create: if isSignedIn() && request.resource.data.uid == request.auth.uid;
+      allow update: if isSignedIn() && (resource.data.uid == request.auth.uid || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    // Collection: Transaction Logs
+    match /transaction_logs/{logId} {
+      allow read: if isSignedIn() && (resource.data.uid == request.auth.uid || isAdmin());
+      allow create: if isSignedIn() && (request.resource.data.uid == request.auth.uid || isAdmin());
+      allow update, delete: if isAdmin();
+    }
+
+    // Collection: Referral History
+    match /referral_history/{historyId} {
+      allow read: if isSignedIn() && (resource.data.referrerUid == request.auth.uid || isAdmin());
+      allow create: if isSignedIn() && (request.resource.data.referrerUid == request.auth.uid || isAdmin());
+      allow update, delete: if isAdmin();
+    }
+
+    // Collection: Notifications
+    match /notifications/{notificationId} {
+      allow read: if isSignedIn() && (resource.data.uid == request.auth.uid || resource.data.uid == 'all' || isAdmin());
+      allow create: if isSignedIn() && (request.resource.data.uid == request.auth.uid || request.resource.data.uid == 'all' || isAdmin());
+      allow update: if isSignedIn() && (resource.data.uid == request.auth.uid || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    // Collection: Support Tickets
+    match /support_tickets/{ticketId} {
+      allow read: if isSignedIn() && (resource.data.uid == request.auth.uid || isAdmin());
+      allow create: if isSignedIn() && request.resource.data.uid == request.auth.uid;
+      allow update: if isSignedIn() && (resource.data.uid == request.auth.uid || isAdmin());
+      allow delete: if isAdmin();
+
+      // Subcollection: messages inner matching
+      match /messages/{messageId} {
+        allow read: if isSignedIn() && (get(/databases/$(database)/documents/support_tickets/$(ticketId)).data.uid == request.auth.uid || isAdmin());
+        allow create: if isSignedIn() && (get(/databases/$(database)/documents/support_tickets/$(ticketId)).data.uid == request.auth.uid || isAdmin());
+        allow update, delete: if isAdmin();
+      }
+    }
+  }
+}

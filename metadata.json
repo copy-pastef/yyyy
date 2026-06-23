@@ -1,0 +1,6 @@
+{
+  "name": "Smart Deposit Platform",
+  "description": "A secure modern deposit and investment management platform featuring responsive client dashboards, referral rewards, customizable plans, and comprehensive request management.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

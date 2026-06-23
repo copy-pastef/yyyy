@@ -1,0 +1,243 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Represents the dynamic account profile for a client or administrator.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "fullName": { "type": "string" },
+        "phone": { "type": "string" },
+        "role": { "type": "string", "enum": ["user", "admin"] },
+        "walletBalance": { "type": "number" },
+        "totalInvested": { "type": "number" },
+        "totalWithdrawn": { "type": "number" },
+        "totalEarned": { "type": "number" },
+        "referralCode": { "type": "string" },
+        "referredBy": { "type": "string" },
+        "referralCommissionEarned": { "type": "number" },
+        "status": { "type": "string", "enum": ["active", "suspended"] },
+        "isPhoneVerified": { "type": "boolean" },
+        "isEmailVerified": { "type": "boolean" },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["uid", "email", "fullName", "phone", "role"]
+    },
+    "InvestmentPlan": {
+      "title": "InvestmentPlan",
+      "description": "Defines an active package that users can purchase inside the platform.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "cost": { "type": "number" },
+        "dailyBonus": { "type": "number" },
+        "durationDays": { "type": "number" },
+        "active": { "type": "boolean" },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["id", "name", "cost", "dailyBonus", "durationDays", "active"]
+    },
+    "UserInvestment": {
+      "title": "UserInvestment",
+      "description": "Tracks purchased active or expired investment plans.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "uid": { "type": "string" },
+        "userEmail": { "type": "string" },
+        "planId": { "type": "string" },
+        "planName": { "type": "string" },
+        "cost": { "type": "number" },
+        "dailyBonus": { "type": "number" },
+        "purchasedAt": { "type": "number" },
+        "expiresAt": { "type": "number" },
+        "lastBonusClaimedAt": { "type": "number" },
+        "daysClaimed": { "type": "number" },
+        "status": { "type": "string", "enum": ["active", "expired"] }
+      },
+      "required": ["id", "uid", "planId", "cost", "dailyBonus", "status"]
+    },
+    "DepositRequest": {
+      "title": "DepositRequest",
+      "description": "Represents a manual client deposit transfer request waiting audit.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "uid": { "type": "string" },
+        "userEmail": { "type": "string" },
+        "phone": { "type": "string" },
+        "paymentMethod": { "type": "string", "enum": ["bKash", "Nagad", "Rocket"] },
+        "amount": { "type": "number" },
+        "transactionId": { "type": "string" },
+        "proofScreenshot": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "approved", "rejected"] },
+        "rejectionReason": { "type": "string" },
+        "createdAt": { "type": "number" },
+        "processedAt": { "type": "number" }
+      },
+      "required": ["id", "uid", "paymentMethod", "amount", "transactionId", "status", "createdAt"]
+    },
+    "WithdrawRequest": {
+      "title": "WithdrawRequest",
+      "description": "Represents a manual client withdrawal payout request.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "uid": { "type": "string" },
+        "userEmail": { "type": "string" },
+        "paymentMethod": { "type": "string", "enum": ["bKash", "Nagad", "Rocket"] },
+        "amount": { "type": "number" },
+        "targetNumber": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "approved", "rejected"] },
+        "rejectionReason": { "type": "string" },
+        "createdAt": { "type": "number" },
+        "processedAt": { "type": "number" }
+      },
+      "required": ["id", "uid", "paymentMethod", "amount", "targetNumber", "status", "createdAt"]
+    },
+    "TransactionLog": {
+      "title": "TransactionLog",
+      "description": "Auditable transaction logs tracking currency moves.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "uid": { "type": "string" },
+        "userEmail": { "type": "string" },
+        "amount": { "type": "number" },
+        "type": { "type": "string" },
+        "details": { "type": "string" },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["id", "uid", "amount", "type", "createdAt"]
+    },
+    "ReferralHistoryRecord": {
+      "title": "ReferralHistoryRecord",
+      "description": "Tracks downline investment and referrer commission payouts.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "referrerUid": { "type": "string" },
+        "refereeUid": { "type": "string" },
+        "refereeEmail": { "type": "string" },
+        "amountInvested": { "type": "number" },
+        "commissionCredited": { "type": "number" },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["id", "referrerUid", "refereeUid", "commissionCredited", "createdAt"]
+    },
+    "Notification": {
+      "title": "Notification",
+      "description": "Global or targeted in-app alert notification.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "uid": { "type": "string" },
+        "title": { "type": "string" },
+        "message": { "type": "string" },
+        "read": { "type": "boolean" },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["id", "uid", "title", "message", "read", "createdAt"]
+    },
+    "SupportTicket": {
+      "title": "SupportTicket",
+      "description": "Customer support query conversation.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "uid": { "type": "string" },
+        "userEmail": { "type": "string" },
+        "subject": { "type": "string" },
+        "message": { "type": "string" },
+        "status": { "type": "string", "enum": ["open", "answered", "closed"] },
+        "createdAt": { "type": "number" },
+        "lastActivityAt": { "type": "number" }
+      },
+      "required": ["id", "uid", "subject", "message", "status", "createdAt"]
+    },
+    "TicketMessage": {
+      "title": "TicketMessage",
+      "description": "Individual replies inside a support query ticket.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "ticketId": { "type": "string" },
+        "senderUid": { "type": "string" },
+        "senderRole": { "type": "string", "enum": ["user", "admin"] },
+        "senderEmail": { "type": "string" },
+        "message": { "type": "string" },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["id", "ticketId", "senderUid", "senderRole", "message", "createdAt"]
+    },
+    "SystemSettings": {
+      "title": "SystemSettings",
+      "description": "Master configurations and rules for the global platform.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "platformName": { "type": "string" },
+        "defaultCurrency": { "type": "string" },
+        "referralType": { "type": "string", "enum": ["percentage", "fixed"] },
+        "referralValue": { "type": "number" },
+        "notices": { "type": "string" },
+        "bannerUrl": { "type": "string" },
+        "bannerTitle": { "type": "string" },
+        "bannerMessage": { "type": "string" },
+        "bkashNumber": { "type": "string" },
+        "nagadNumber": { "type": "string" },
+        "rocketNumber": { "type": "string" },
+        "contactEmail": { "type": "string" }
+      },
+      "required": ["id", "platformName"]
+    }
+  },
+  "firestore": {
+    "/system_settings/{id}": {
+      "schema": "SystemSettings",
+      "description": "Holds the master system config document ('config')."
+    },
+    "/investment_plans/{id}": {
+      "schema": "InvestmentPlan",
+      "description": "Holds investment plans configurable by the admin and bought by users."
+    },
+    "/users/{uid}": {
+      "schema": "UserProfile",
+      "description": "Holds registered profiles of both clients and admins."
+    },
+    "/user_investments/{id}": {
+      "schema": "UserInvestment",
+      "description": "Holds purchased investment plans."
+    },
+    "/deposit_requests/{id}": {
+      "schema": "DepositRequest",
+      "description": "Holds manual financial deposits made by customers, subject to clearance."
+    },
+    "/withdraw_requests/{id}": {
+      "schema": "WithdrawRequest",
+      "description": "Holds checkouts by customers."
+    },
+    "/transaction_logs/{id}": {
+      "schema": "TransactionLog",
+      "description": "Holds financial audit tracks."
+    },
+    "/referral_history/{id}": {
+      "schema": "ReferralHistoryRecord",
+      "description": "Holds affiliate referral rewards payouts."
+    },
+    "/notifications/{id}": {
+      "schema": "Notification",
+      "description": "Holds inbox and global broadcast notifications."
+    },
+    "/support_tickets/{id}": {
+      "schema": "SupportTicket",
+      "description": "Conversations opened by users for system assistance."
+    },
+    "/support_tickets/{id}/messages/{msgId}": {
+      "schema": "TicketMessage",
+      "description": "Individual turn replies inside a chat ticket."
+    }
+  }
+}
