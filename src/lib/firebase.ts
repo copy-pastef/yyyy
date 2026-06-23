@@ -9,12 +9,12 @@ import { getAuth } from "firebase/auth";
 
 // Securely load from environment variables with graceful defaults
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyDJ9NiJTZN2b1UPYPr_l0aCBH9LgVkHe_A",
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "optimistic-mark-kthgf.firebaseapp.com",
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "optimistic-mark-kthgf",
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "optimistic-mark-kthgf.firebasestorage.app",
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "57319821109",
-  appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:57319821109:web:ff58e112b0cd05ab59867c"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyBofQx8seTAl_4xK2eyc9CO1CDvgKGr2LQ",
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "deposit-app-f8a98.firebaseapp.com",
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "deposit-app-f8a98",
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "deposit-app-f8a98.firebasestorage.app",
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "630087153343",
+  appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:630087153343:web:1a921fa254e6fa6781f80a"
 };
 
 // Initialize Firebase
