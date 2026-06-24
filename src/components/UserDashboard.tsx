@@ -18,7 +18,7 @@ import {
   orderBy,
   limit
 } from 'firebase/firestore';
-import { auth, db } from '../lib/firebase';
+import { auth, db, handleFirestoreError, OperationType } from '../lib/firebase';
 import { 
   UserProfile, 
   InvestmentPlan, 
@@ -30,7 +30,8 @@ import {
   Notification, 
   SupportTicket, 
   TicketMessage, 
-  SystemSettings 
+  SystemSettings,
+  AdTask
 } from '../types';
 import { 
   Wallet, 
@@ -57,7 +58,8 @@ import {
   Compass, 
   Plus, 
   Flame,
-  Shield
+  Shield,
+  Tv
 } from 'lucide-react';
 
 interface UserDashboardProps {
@@ -76,7 +78,7 @@ export default function UserDashboard({
   setTheme 
 }: UserDashboardProps) {
   const [profile, setProfile] = useState<UserProfile>(initialProfile);
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'deposit' | 'withdraw' | 'history' | 'referrals' | 'tickets' | 'profile' | 'notifications'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'deposit' | 'withdraw' | 'history' | 'referrals' | 'tickets' | 'profile' | 'notifications' | 'tasks'>('dashboard');
   
   // Real-time listener for current user profile state
   useEffect(() => {
@@ -101,6 +103,14 @@ export default function UserDashboard({
   const [activeTicket, setActiveTicket] = useState<SupportTicket | null>(null);
   const [ticketMessages, setTicketMessages] = useState<TicketMessage[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [taskCompletions, setTaskCompletions] = useState<any[]>([]);
+
+  // Daily tasks & ad modal states
+  const [activeAd, setActiveAd] = useState<AdTask | null>(null);
+  const [countdown, setCountdown] = useState(0);
+  const [canClaim, setCanClaim] = useState(false);
+  const [claimingAd, setClaimingAd] = useState(false);
+  const [adSuccess, setAdSuccess] = useState('');
   
   // Forms & Modal states
   const [depositAmount, setDepositAmount] = useState('');
@@ -136,6 +146,8 @@ export default function UserDashboard({
 
   // Fetch investment plans, active investments, deposits, withdrawals, tickets, notifications
   useEffect(() => {
+    if (!profile || !profile.uid) return;
+
     // 1. Fetch active plans
     const unsubPlans = onSnapshot(collection(db, 'investment_plans'), (snapshot) => {
       const plansList: InvestmentPlan[] = [];
@@ -144,6 +156,8 @@ export default function UserDashboard({
         if (data.active) plansList.push(data);
       });
       setAllPlans(plansList);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, 'investment_plans');
     });
 
     // 2. Listen to User Investments
@@ -154,6 +168,8 @@ export default function UserDashboard({
         investList.push({ ...docSnap.data(), id: docSnap.id } as UserInvestment);
       });
       setMyInvestments(investList.sort((a,b) => b.purchasedAt - a.purchasedAt));
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, 'user_investments');
     });
 
     // 3. Listen to User Deposits
@@ -164,6 +180,8 @@ export default function UserDashboard({
         depList.push({ ...docSnap.data(), id: docSnap.id } as DepositRequest);
       });
       setMyDeposits(depList.sort((a,b) => b.createdAt - a.createdAt));
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, 'deposit_requests');
     });
 
     // 4. Listen to User Withdraws
@@ -174,6 +192,8 @@ export default function UserDashboard({
         withList.push({ ...docSnap.data(), id: docSnap.id } as WithdrawRequest);
       });
       setMyWithdrawals(withList.sort((a,b) => b.createdAt - a.createdAt));
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, 'withdraw_requests');
     });
 
     // 5. Transaction Logs
@@ -184,6 +204,8 @@ export default function UserDashboard({
         txList.push({ ...docSnap.data(), id: docSnap.id } as TransactionLog);
       });
       setMyTxLogs(txList.sort((a,b) => b.createdAt - a.createdAt));
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, 'transaction_logs');
     });
 
     // 6. Referral Earnings payouts
@@ -194,6 +216,8 @@ export default function UserDashboard({
         refRecs.push({ ...docSnap.data(), id: docSnap.id } as ReferralHistoryRecord);
       });
       setReferralPayouts(refRecs.sort((a,b) => b.createdAt - a.createdAt));
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, 'referral_history');
     });
 
     // 7. Referral list (users referred by me)
@@ -204,6 +228,8 @@ export default function UserDashboard({
         list.push(docSnap.data() as UserProfile);
       });
       setMyReferrals(list);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, 'users');
     });
 
     // 8. Notifications
@@ -214,6 +240,8 @@ export default function UserDashboard({
         list.push({ ...docSnap.data(), id: docSnap.id } as Notification);
       });
       setNotifications(list.sort((a,b) => b.createdAt - a.createdAt));
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, 'notifications');
     });
 
     // 9. Support tickets
@@ -224,6 +252,20 @@ export default function UserDashboard({
         list.push({ ...docSnap.data(), id: docSnap.id } as SupportTicket);
       });
       setTickets(list.sort((a,b) => b.lastActivityAt - a.lastActivityAt));
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, 'support_tickets');
+    });
+
+    // 10. Task Completions
+    const qCompletions = query(collection(db, 'task_completions'), where('uid', '==', profile.uid));
+    const unsubCompletions = onSnapshot(qCompletions, (snapshot) => {
+      const list: any[] = [];
+      snapshot.forEach((docSnap) => {
+        list.push({ ...docSnap.data(), id: docSnap.id });
+      });
+      setTaskCompletions(list);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, 'task_completions');
     });
 
     return () => {
@@ -236,6 +278,7 @@ export default function UserDashboard({
       unsubReferred();
       unsubNotif();
       unsubTickets();
+      unsubCompletions();
     };
   }, [profile.uid]);
 
@@ -249,6 +292,8 @@ export default function UserDashboard({
         list.push({ ...docSnap.data(), id: docSnap.id } as TicketMessage);
       });
       setTicketMessages(list);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, `support_tickets/${activeTicket.id}/messages`);
     });
     return unsubMsgs;
   }, [activeTicket]);
@@ -364,6 +409,126 @@ export default function UserDashboard({
     runAutomaticBonusCheckAndClaim();
   }, [myInvestments, profile.walletBalance]);
 
+  // Ad-watching countdown timer effect
+  useEffect(() => {
+    let timerId: any;
+    if (activeAd && countdown > 0) {
+      timerId = setInterval(() => {
+        setCountdown((prev) => {
+          if (prev <= 1) {
+            clearInterval(timerId);
+            setCanClaim(true);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+    return () => {
+      if (timerId) clearInterval(timerId);
+    };
+  }, [activeAd, countdown]);
+
+  const handleStartTask = (ad: AdTask) => {
+    // 1. Calculate active investments total tasks limit
+    const activeInvests = myInvestments.filter(i => i.status === 'active');
+    let totalLimit = 0;
+    activeInvests.forEach(i => {
+      totalLimit += i.dailyTasks || Math.floor(i.cost / 200);
+    });
+
+    // 2. Count completed tasks today
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+    const startOfTodayMs = startOfToday.getTime();
+    const completedToday = taskCompletions.filter(tc => tc.completedAt >= startOfTodayMs).length;
+
+    if (completedToday >= totalLimit) {
+      alert(`⚠️ You have reached your daily limit of ${totalLimit} tasks. Upgrade your plan or buy more plans to get more daily tasks!`);
+      return;
+    }
+
+    setActiveAd(ad);
+    setCountdown(ad.duration || 10);
+    setCanClaim(false);
+    setAdSuccess('');
+  };
+
+  const handleClaimAdReward = async () => {
+    if (!activeAd || !canClaim || claimingAd) return;
+    setClaimingAd(true);
+    try {
+      const now = Date.now();
+      const startOfToday = new Date();
+      startOfToday.setHours(0, 0, 0, 0);
+      const startOfTodayMs = startOfToday.getTime();
+
+      // Double-check limits
+      const activeInvests = myInvestments.filter(i => i.status === 'active');
+      let totalLimit = 0;
+      activeInvests.forEach(i => {
+        totalLimit += i.dailyTasks || Math.floor(i.cost / 200);
+      });
+      const completedToday = taskCompletions.filter(tc => tc.completedAt >= startOfTodayMs).length;
+
+      if (completedToday >= totalLimit) {
+        alert("⚠️ You have already completed your maximum daily tasks!");
+        setActiveAd(null);
+        setClaimingAd(false);
+        return;
+      }
+
+      // 1. Record task completion
+      await addDoc(collection(db, 'task_completions'), {
+        uid: profile.uid,
+        userEmail: profile.email,
+        adId: activeAd.id,
+        adTitle: activeAd.title,
+        reward: activeAd.reward || 10,
+        completedAt: now,
+        dateStr: new Date(now).toISOString().split('T')[0]
+      });
+
+      // 2. Add BDT reward to user's wallet balance
+      const rewardAmt = activeAd.reward || 10;
+      const userRef = doc(db, 'users', profile.uid);
+      await updateDoc(userRef, {
+        walletBalance: profile.walletBalance + rewardAmt,
+        totalEarned: profile.totalEarned + rewardAmt
+      });
+
+      // 3. Log Transaction
+      await addDoc(collection(db, 'transaction_logs'), {
+        uid: profile.uid,
+        userEmail: profile.email,
+        amount: rewardAmt,
+        type: 'bonus',
+        details: `Completed Daily Ad Task: "${activeAd.title}" (৳${rewardAmt} credited)`,
+        createdAt: now
+      });
+
+      // 4. Create Notification
+      await addDoc(collection(db, 'notifications'), {
+        uid: profile.uid,
+        title: 'Task Reward Credited! 🎉',
+        message: `৳${rewardAmt} BDT has been credited to your wallet for watching: "${activeAd.title}".`,
+        read: false,
+        createdAt: now
+      });
+
+      setAdSuccess(`🎉 Successfully completed! ৳${rewardAmt} BDT credited to your wallet.`);
+      setTimeout(() => {
+        setActiveAd(null);
+        setAdSuccess('');
+        setClaimingAd(false);
+      }, 2500);
+
+    } catch (err: any) {
+      alert("Error claiming task reward: " + err.message);
+      setClaimingAd(false);
+    }
+  };
+
   // FAST FORWARD SIMULATION (Deactivated based on seller rules & security policies)
   const triggerFastForwardSimulator = async (investId: string) => {
     // Completely deactivated to enforce exact 24-hour schedules with zero manual intervention.
@@ -407,7 +572,8 @@ export default function UserDashboard({
         lastBonusClaimedAt: now,
         daysClaimed: 0,
         status: 'active',
-        durationDays: plan.durationDays
+        durationDays: plan.durationDays,
+        dailyTasks: plan.dailyTasks || Math.floor(plan.cost / 200)
       });
 
       // 2. Subtract user wallet balance
@@ -718,6 +884,17 @@ export default function UserDashboard({
             }`}
           >
             <span className="flex items-center gap-2.5"><Compass className="w-4 h-4" /> Dashboard</span>
+            <ChevronRight className="w-3.5 h-3.5 opacity-60" />
+          </button>
+
+          <button 
+            id="nav-tasks"
+            onClick={() => setActiveTab('tasks')}
+            className={`w-full flex items-center justify-between px-3 py-2.5 text-xs font-semibold rounded-xl transition-all ${
+              activeTab === 'tasks' ? 'bg-emerald-600 text-white shadow-md' : 'text-slate-400 hover:text-white hover:bg-zinc-800/50'
+            }`}
+          >
+            <span className="flex items-center gap-2.5"><Tv className="w-4 h-4 text-amber-400" /> Daily Ads Tasks</span>
             <ChevronRight className="w-3.5 h-3.5 opacity-60" />
           </button>
 
@@ -1815,6 +1992,185 @@ export default function UserDashboard({
             </div>
           )}
 
+          {/* H. DAILY ADS TASKS PAGE */}
+          {activeTab === 'tasks' && (() => {
+            const activeInvestments = myInvestments.filter(i => i.status === 'active');
+            const totalTasksLimit = activeInvestments.reduce((acc, curr) => {
+              return acc + (curr.dailyTasks || Math.floor(curr.cost / 200));
+            }, 0);
+
+            const startOfToday = new Date();
+            startOfToday.setHours(0, 0, 0, 0);
+            const startOfTodayMs = startOfToday.getTime();
+
+            const completionsToday = taskCompletions.filter(tc => tc.completedAt >= startOfTodayMs);
+            const completedTasksCount = completionsToday.length;
+            const remainingTasksCount = Math.max(0, totalTasksLimit - completedTasksCount);
+            const earningsToday = completionsToday.reduce((acc, curr) => acc + (curr.reward || 10), 0);
+
+            const isAdCompletedToday = (adId: string) => {
+              return completionsToday.some(tc => tc.adId === adId);
+            };
+
+            const adsToDisplay = systemSettings.adTasks || [
+              { id: "ad_1", title: "Premium Sponsor Ad 1", adLink: "https://www.youtube.com/embed/dQw4w9WgXcQ", duration: 10, reward: 10 },
+              { id: "ad_2", title: "Smart Crypto Investment Ad 2", adLink: "https://www.google.com", duration: 10, reward: 10 },
+              { id: "ad_3", title: "Real Estate Growth Ad 3", adLink: "https://www.wikipedia.org", duration: 10, reward: 10 },
+              { id: "ad_4", title: "Future Stocks Trading Ad 4", adLink: "https://www.github.com", duration: 10, reward: 10 },
+              { id: "ad_5", title: "E-Commerce Success Ad 5", adLink: "https://www.amazon.com", duration: 10, reward: 10 }
+            ];
+
+            return (
+              <div className="space-y-6">
+                {/* Header Banner */}
+                <div className={`p-6 rounded-3xl border ${isDark ? 'bg-zinc-900 border-zinc-850' : 'bg-white border-slate-200'} flex flex-col md:flex-row justify-between items-start md:items-center gap-4`}>
+                  <div>
+                    <h3 className="text-lg font-black tracking-tight flex items-center gap-2 text-white">
+                      <Tv className="w-5 h-5 text-amber-400" />
+                      Daily Ads Tasks Portal
+                    </h3>
+                    <p className="text-xs text-slate-400 mt-1">
+                      Watch premium sponsor ads for 10 seconds to instantly claim your ৳10 BDT daily tasks reward!
+                    </p>
+                  </div>
+                  {activeInvestments.length > 0 && (
+                    <div className="bg-emerald-500/10 text-emerald-400 text-xs font-bold px-3.5 py-1.5 rounded-2xl border border-emerald-500/15">
+                      {activeInvestments.length} Active Plans Registered
+                    </div>
+                  )}
+                </div>
+
+                {/* Statistics Grid */}
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                  {/* Card 1: Completed / Limit */}
+                  <div className={`p-5 rounded-3xl border ${isDark ? 'bg-zinc-900 border-zinc-855' : 'bg-white border-slate-200'}`}>
+                    <span className="block text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-2">Today's Progress</span>
+                    <div className="flex items-baseline gap-1.5">
+                      <span className="text-2xl font-black text-white">{completedTasksCount}</span>
+                      <span className="text-xs text-slate-500">/ {totalTasksLimit} Ads</span>
+                    </div>
+                    {/* Progress Bar */}
+                    <div className="w-full h-1.5 bg-zinc-800 rounded-full mt-3 overflow-hidden">
+                      <div 
+                        className="bg-emerald-500 h-full rounded-full transition-all duration-500"
+                        style={{ width: `${totalTasksLimit > 0 ? (completedTasksCount / totalTasksLimit) * 100 : 0}%` }}
+                      ></div>
+                    </div>
+                  </div>
+
+                  {/* Card 2: Today's Earnings */}
+                  <div className={`p-5 rounded-3xl border ${isDark ? 'bg-zinc-900 border-zinc-855' : 'bg-white border-slate-200'}`}>
+                    <span className="block text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-2">Today's Earnings</span>
+                    <span className="text-2xl font-black text-emerald-400">৳{earningsToday} BDT</span>
+                    <p className="text-[10px] text-slate-500 mt-1">Claimed securely to main wallet</p>
+                  </div>
+
+                  {/* Card 3: Remaining Tasks */}
+                  <div className={`p-5 rounded-3xl border ${isDark ? 'bg-zinc-900 border-zinc-855' : 'bg-white border-slate-200'}`}>
+                    <span className="block text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-2">Tasks Remaining</span>
+                    <span className="text-2xl font-black text-amber-500">{remainingTasksCount} Tasks</span>
+                    <p className="text-[10px] text-slate-500 mt-1">Resets at 12:00 AM daily</p>
+                  </div>
+
+                  {/* Card 4: Daily Limit */}
+                  <div className={`p-5 rounded-3xl border ${isDark ? 'bg-zinc-900 border-zinc-855' : 'bg-white border-slate-200'}`}>
+                    <span className="block text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-2">Your Task Limit</span>
+                    <span className="text-2xl font-black text-indigo-400">{totalTasksLimit} Ads/Day</span>
+                    <p className="text-[10px] text-slate-500 mt-1">Determined by purchased plans</p>
+                  </div>
+                </div>
+
+                {/* Task List Grid */}
+                {totalTasksLimit === 0 ? (
+                  <div className={`p-10 text-center rounded-3xl border ${isDark ? 'bg-zinc-900 border-zinc-850' : 'bg-white border-slate-200'} space-y-4`}>
+                    <div className="mx-auto w-12 h-12 rounded-full bg-amber-500/10 text-amber-500 flex items-center justify-center">
+                      <AlertCircle className="w-6 h-6" />
+                    </div>
+                    <div className="max-w-md mx-auto">
+                      <h4 className="font-bold text-white text-sm">No Active Investment Plans Registered</h4>
+                      <p className="text-xs text-slate-450 mt-1 leading-relaxed">
+                        You do not have any active investment plans to unlock daily ad tasks. Purchase a plan to start earning money!
+                      </p>
+                    </div>
+                    <button
+                      id="btn-go-purchase-plan"
+                      onClick={() => setActiveTab('dashboard')}
+                      className="inline-flex items-center gap-2 px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 font-bold text-xs text-white rounded-xl transition-all shadow"
+                    >
+                      Browse Investment Plans
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <h4 className="text-xs font-black text-slate-450 uppercase tracking-widest">Available Tasks List</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {adsToDisplay.map((ad: any, index: number) => {
+                        const isCompleted = isAdCompletedToday(ad.id);
+                        const isLimitReached = completedTasksCount >= totalTasksLimit;
+                        
+                        return (
+                          <div 
+                            key={ad.id || index} 
+                            className={`p-5 rounded-3xl border flex flex-col justify-between transition-all ${
+                              isCompleted 
+                                ? 'bg-zinc-950/40 border-zinc-900 opacity-60' 
+                                : 'bg-zinc-900 border-zinc-850 hover:border-zinc-700'
+                            }`}
+                          >
+                            <div>
+                              <div className="flex justify-between items-start gap-2 mb-3">
+                                <div className="p-2 bg-zinc-850 rounded-2xl text-amber-400">
+                                  <Tv className="w-5 h-5" />
+                                </div>
+                                {isCompleted ? (
+                                  <span className="bg-emerald-500/10 text-emerald-400 text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border border-emerald-500/15">
+                                    ✓ Completed Today
+                                  </span>
+                                ) : (
+                                  <span className="bg-amber-400/10 text-amber-400 text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border border-amber-400/15">
+                                    ৳{ad.reward || 10} BDT
+                                  </span>
+                                )}
+                              </div>
+                              <h5 className="font-bold text-xs text-white line-clamp-1">{ad.title}</h5>
+                              <p className="text-[10px] text-slate-500 mt-1">Duration: {ad.duration || 10} Seconds</p>
+                            </div>
+
+                            <div className="mt-5 pt-3 border-t border-zinc-850/60">
+                              {isCompleted ? (
+                                <button
+                                  className="w-full py-2 bg-zinc-800 text-slate-500 font-bold text-xs rounded-xl cursor-not-allowed"
+                                  disabled
+                                >
+                                  Task Completed
+                                </button>
+                              ) : isLimitReached ? (
+                                <button
+                                  className="w-full py-2 bg-zinc-800 text-slate-500 font-bold text-xs rounded-xl cursor-not-allowed"
+                                  disabled
+                                  title="Daily tasks limit reached based on your active plans!"
+                                >
+                                  Daily Limit Reached
+                                </button>
+                              ) : (
+                                <button
+                                  onClick={() => handleStartTask(ad)}
+                                  className="w-full py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl transition-all shadow"
+                                >
+                                  Start Ad Watching
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+
           {/* H. NOTIFICATIONS LOG LIST */}
           {activeTab === 'notifications' && (
             <div className={`p-6 rounded-3xl border ${isDark ? 'bg-zinc-900 border-zinc-850' : 'bg-white border-slate-200'}`}>
@@ -1872,6 +2228,17 @@ export default function UserDashboard({
           >
             <Compass className="w-4 h-4" />
             <span>Home</span>
+          </button>
+
+          <button 
+            id="mobile-nav-tasks"
+            onClick={() => setActiveTab('tasks')} 
+            className={`flex flex-col items-center gap-1 text-[9px] font-black uppercase tracking-wider ${
+              activeTab === 'tasks' ? 'text-emerald-400' : 'text-slate-400'
+            }`}
+          >
+            <Tv className="w-4 h-4 text-amber-400" />
+            <span>Tasks</span>
           </button>
           
           <button 
@@ -2064,6 +2431,131 @@ export default function UserDashboard({
             >
               OK, GREAT
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================= */}
+      {/* ACTIVE DAILY ADS WATCHING AND REWARD MODAL */}
+      {/* ========================================= */}
+      {activeAd && (
+        <div id="ad-watching-modal" className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/90 backdrop-blur-sm" />
+          
+          <div className="relative w-full max-w-2xl bg-zinc-900 border border-zinc-800 rounded-3xl overflow-hidden shadow-2xl flex flex-col h-[80vh] max-h-[600px]">
+            {/* Header / Mock Browser Bar */}
+            <div className="bg-zinc-950 px-5 py-3.5 border-b border-zinc-850 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="flex gap-1.5">
+                  <div className="w-3 h-3 rounded-full bg-rose-500/80" />
+                  <div className="w-3 h-3 rounded-full bg-amber-500/80" />
+                  <div className="w-3 h-3 rounded-full bg-emerald-500/80" />
+                </div>
+                <div className="h-5 bg-zinc-900 rounded-lg px-3 text-[10px] text-slate-500 flex items-center gap-1.5 max-w-[280px] md:max-w-xs truncate font-mono">
+                  <span className="text-emerald-500/80">secure-adstream://</span>{activeAd.adLink}
+                </div>
+              </div>
+              <span className="bg-amber-400/10 text-amber-400 text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded border border-amber-400/15">
+                Reward: ৳{activeAd.reward || 10} BDT
+              </span>
+            </div>
+
+            {/* Inner Content Area */}
+            <div className="flex-1 bg-black flex flex-col justify-center items-center p-4 relative overflow-hidden">
+              {/* Fallback & Helper links in case of iframe blocking policies */}
+              <div className="absolute top-3 left-3 right-3 z-10 flex flex-col items-center">
+                <a 
+                  href={activeAd.adLink} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="bg-zinc-900/90 text-amber-400 hover:text-amber-300 border border-zinc-800 text-[10px] font-bold px-4 py-1.5 rounded-full shadow-md backdrop-blur-xs transition-all text-center flex items-center gap-1.5"
+                >
+                  🔗 Having trouble loading? Click here to open Ad in new window
+                </a>
+              </div>
+
+              {/* The Ad Frame or Mocking Screen */}
+              <div className="w-full h-full pt-10 pb-4">
+                <iframe
+                  title={activeAd.title}
+                  src={activeAd.adLink}
+                  className="w-full h-full rounded-2xl bg-zinc-900"
+                  referrerPolicy="no-referrer"
+                  sandbox="allow-scripts allow-same-origin allow-popups"
+                />
+              </div>
+            </div>
+
+            {/* Controls Bar */}
+            <div className="bg-zinc-950 p-5 border-t border-zinc-850 flex flex-col sm:flex-row justify-between items-center gap-4">
+              <div className="text-center sm:text-left">
+                <h4 className="text-xs font-black text-white">{activeAd.title}</h4>
+                <p className="text-[10px] text-slate-500 mt-0.5">Watch completely to qualify for the daily reward.</p>
+              </div>
+
+              <div className="flex items-center gap-3 w-full sm:w-auto">
+                {/* Cancel option */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (window.confirm("Are you sure you want to exit? You won't receive the reward unless you watch the ad for the full duration!")) {
+                      setActiveAd(null);
+                    }
+                  }}
+                  className="w-1/2 sm:w-auto px-4 py-2.5 bg-zinc-900 hover:bg-zinc-850 text-slate-400 hover:text-white rounded-xl text-xs font-bold transition-all uppercase tracking-wider"
+                >
+                  Abort Task
+                </button>
+
+                {/* Claim / Timer button */}
+                {countdown > 0 ? (
+                  <button
+                    disabled
+                    className="w-1/2 sm:w-auto px-6 py-2.5 bg-zinc-800 text-slate-500 rounded-xl text-xs font-bold flex items-center justify-center gap-2 cursor-not-allowed uppercase tracking-wider"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin text-amber-500" />
+                    Wait {countdown}s
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleClaimAdReward}
+                    disabled={claimingAd || !!adSuccess}
+                    className={`w-1/2 sm:w-auto px-6 py-2.5 font-bold rounded-xl text-xs uppercase tracking-wider shadow-lg transition-all flex items-center justify-center gap-1.5 ${
+                      adSuccess 
+                        ? 'bg-emerald-500 text-white' 
+                        : 'bg-emerald-600 hover:bg-emerald-500 text-white hover:scale-105 active:scale-95 animate-pulse'
+                    }`}
+                  >
+                    {claimingAd ? (
+                      <>
+                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                        Claiming...
+                      </>
+                    ) : adSuccess ? (
+                      <>
+                        <Check className="w-3.5 h-3.5" />
+                        Success!
+                      </>
+                    ) : (
+                      <>
+                        Claim ৳{activeAd.reward || 10} Reward 🎉
+                      </>
+                    )}
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Success Alert inside modal overlay */}
+            {adSuccess && (
+              <div className="absolute inset-0 z-20 bg-black/80 flex flex-col items-center justify-center text-center p-6 animate-fade-in">
+                <div className="p-4 bg-emerald-500/10 text-emerald-400 rounded-full mb-3 animate-bounce">
+                  <Check className="w-10 h-10" />
+                </div>
+                <h4 className="font-bold text-white text-md">Daily Ad Task Completed!</h4>
+                <p className="text-xs text-slate-400 mt-2 max-w-sm">{adSuccess}</p>
+              </div>
+            )}
           </div>
         </div>
       )}

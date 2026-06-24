@@ -53,6 +53,13 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    // Collection: Task Completions
+    match /task_completions/{completionId} {
+      allow read: if isSignedIn() && (resource.data.uid == request.auth.uid || isAdmin());
+      allow create: if isSignedIn() && request.resource.data.uid == request.auth.uid;
+      allow update, delete: if isAdmin();
+    }
+
     // Collection: Deposit Requests
     match /deposit_requests/{requestId} {
       allow read: if isSignedIn() && (resource.data.uid == request.auth.uid || isAdmin());

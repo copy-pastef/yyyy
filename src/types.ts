@@ -30,6 +30,7 @@ export interface InvestmentPlan {
   durationDays: number; // how many days it lives
   active: boolean; // whether users can buy it
   createdAt: number;
+  dailyTasks?: number; // count of daily tasks
 }
 
 export interface UserInvestment {
@@ -46,6 +47,7 @@ export interface UserInvestment {
   daysClaimed: number; // how many days of bonus have been credited
   status: 'active' | 'expired';
   durationDays?: number;
+  dailyTasks?: number; // count of daily tasks
 }
 
 export interface DepositRequest {
@@ -126,6 +128,14 @@ export interface TicketMessage {
   createdAt: number;
 }
 
+export interface AdTask {
+  id: string;
+  title: string;
+  adLink: string;
+  duration: number; // seconds
+  reward: number; // BDT
+}
+
 export interface SystemSettings {
   id: string; // e.g. "config"
   platformName: string;
@@ -140,4 +150,5 @@ export interface SystemSettings {
   nagadNumber: string;
   rocketNumber: string;
   contactEmail: string;
+  adTasks?: AdTask[];
 }

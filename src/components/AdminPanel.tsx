@@ -17,7 +17,7 @@ import {
   addDoc, 
   deleteDoc 
 } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { db, handleFirestoreError, OperationType } from '../lib/firebase';
 import { 
   UserProfile, 
   InvestmentPlan, 
@@ -27,7 +27,8 @@ import {
   ReferralHistoryRecord, 
   SupportTicket, 
   TicketMessage, 
-  SystemSettings 
+  SystemSettings,
+  AdTask
 } from '../types';
 import { 
   BarChart, 
@@ -54,7 +55,8 @@ import {
   Volume2, 
   HelpCircle,
   TrendingUp,
-  DollarSign
+  DollarSign,
+  Tv
 } from 'lucide-react';
 
 interface AdminPanelProps {
@@ -98,6 +100,7 @@ export default function AdminPanel({
   const [newPlanBonus, setNewPlanBonus] = useState('');
   const [newPlanDays, setNewPlanDays] = useState('30');
   const [newPlanActive, setNewPlanActive] = useState(true);
+  const [newPlanTasks, setNewPlanTasks] = useState('');
 
   // Settings editing states
   const [editPlatformName, setEditPlatformName] = useState(settings.platformName);
@@ -109,6 +112,12 @@ export default function AdminPanel({
   const [editBannerMsg, setEditBannerMsg] = useState(settings.bannerMessage);
   const [editRefType, setEditRefType] = useState(settings.referralType);
   const [editRefVal, setEditRefVal] = useState(settings.referralValue.toString());
+
+  // Ad task manager form states
+  const [newAdTitle, setNewAdTitle] = useState('');
+  const [newAdLink, setNewAdLink] = useState('');
+  const [newAdDuration, setNewAdDuration] = useState('10');
+  const [newAdReward, setNewAdReward] = useState('10');
 
   // REUSABLE STATEFUL SYSTEM CONFIRM DIALOG OVERLAY (Instead of browser blocked window.confirm/prompt)
   const [confirmModal, setConfirmModal] = useState<{
@@ -199,6 +208,8 @@ export default function AdminPanel({
         const val = snap.data() as SystemSettings;
         setSettings(val);
       }
+    }, (error) => {
+      handleFirestoreError(error, OperationType.GET, 'system_settings/config');
     });
 
     // Users
@@ -206,6 +217,8 @@ export default function AdminPanel({
       const userList: UserProfile[] = [];
       snap.forEach((d) => userList.push({ ...d.data() } as UserProfile));
       setAllUsers(userList.sort((a,b) => b.createdAt - a.createdAt));
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, 'users');
     });
 
     // Deposits
@@ -213,6 +226,8 @@ export default function AdminPanel({
       const depList: DepositRequest[] = [];
       snap.forEach((d) => depList.push({ ...d.data(), id: d.id } as DepositRequest));
       setDeposits(depList.sort((a,b) => b.createdAt - a.createdAt));
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, 'deposit_requests');
     });
 
     // Withdraws
@@ -220,6 +235,8 @@ export default function AdminPanel({
       const withList: WithdrawRequest[] = [];
       snap.forEach((d) => withList.push({ ...d.data(), id: d.id } as WithdrawRequest));
       setWithdraws(withList.sort((a,b) => b.createdAt - a.createdAt));
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, 'withdraw_requests');
     });
 
     // Investment Plans
@@ -227,6 +244,8 @@ export default function AdminPanel({
       const planList: InvestmentPlan[] = [];
       snap.forEach((d) => planList.push({ ...d.data(), id: d.id } as InvestmentPlan));
       setPlans(planList.sort((a,b) => b.createdAt - a.createdAt));
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, 'investment_plans');
     });
 
     // Support Tickets
@@ -234,6 +253,8 @@ export default function AdminPanel({
       const ticList: SupportTicket[] = [];
       snap.forEach((d) => ticList.push({ ...d.data(), id: d.id } as SupportTicket));
       setTickets(ticList.sort((a,b) => b.lastActivityAt - a.lastActivityAt));
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, 'support_tickets');
     });
 
     // Transaction logs
@@ -241,6 +262,8 @@ export default function AdminPanel({
       const logs: TransactionLog[] = [];
       snap.forEach((d) => logs.push({ ...d.data(), id: d.id } as TransactionLog));
       setTxLogs(logs.sort((a,b) => b.createdAt - a.createdAt));
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, 'transaction_logs');
     });
 
     return () => {
@@ -263,6 +286,8 @@ export default function AdminPanel({
         const list: TicketMessage[] = [];
         snap.forEach((d) => list.push({ ...d.data(), id: d.id } as TicketMessage));
         setTicketMessages(list.sort((a,b) => a.createdAt - b.createdAt));
+      }, (error) => {
+        handleFirestoreError(error, OperationType.LIST, `support_tickets/${activeTicket.id}/messages`);
       }
     );
     return unsubTicketMessages;
@@ -665,6 +690,7 @@ export default function AdminPanel({
       const planCost = Number(newPlanCost);
       const planBonus = Number(newPlanBonus);
       const planDays = Number(newPlanDays);
+      const planTasks = newPlanTasks ? Number(newPlanTasks) : Math.floor(planCost / 200);
 
       await setDoc(doc(db, 'investment_plans', planCode), {
         id: planCode,
@@ -673,6 +699,7 @@ export default function AdminPanel({
         dailyBonus: planBonus,
         durationDays: planDays,
         active: newPlanActive,
+        dailyTasks: planTasks,
         createdAt: Date.now()
       });
 
@@ -681,6 +708,7 @@ export default function AdminPanel({
       setNewPlanCost('');
       setNewPlanBonus('');
       setNewPlanDays('30');
+      setNewPlanTasks('');
       showAdminAlert("PLAN CREATED", `Investment portfolio plan "${newPlanName}" successfully registered inside the platform!`, "success");
     } catch (err: any) {
       showAdminAlert("ERROR", "Error saving custom plan: " + err.message, "error");
@@ -721,6 +749,56 @@ export default function AdminPanel({
     } catch (err: any) {
       showAdminAlert("ERROR", "Settings write error: " + err.message, "error");
     }
+  };
+
+  const handleAddAdTask = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newAdTitle.trim() || !newAdLink.trim()) {
+      showAdminAlert("INCOMPLETE VARIABLES", "Please fill in Ad Title and Ad Link correctly.", "error");
+      return;
+    }
+    try {
+      const currentTasks = settings.adTasks || [];
+      const newTask: AdTask = {
+        id: `ad_${Date.now()}`,
+        title: newAdTitle.trim(),
+        adLink: newAdLink.trim(),
+        duration: Number(newAdDuration) || 10,
+        reward: Number(newAdReward) || 10
+      };
+      
+      const updatedTasks = [...currentTasks, newTask];
+      await updateDoc(doc(db, 'system_settings', 'config'), {
+        adTasks: updatedTasks
+      });
+      
+      setNewAdTitle('');
+      setNewAdLink('');
+      setNewAdDuration('10');
+      setNewAdReward('10');
+      showAdminAlert("AD TASK ADDED", `Ad task "${newTask.title}" was successfully added to global tasks list!`, "success");
+    } catch (err: any) {
+      showAdminAlert("ERROR", "Error adding ad task: " + err.message, "error");
+    }
+  };
+
+  const handleRemoveAdTask = async (adId: string) => {
+    showAdminConfirm(
+      "CONFIRM REMOVAL",
+      "Are you sure you want to permanently delete this daily ad task? Users will no longer be able to watch it.",
+      async () => {
+        try {
+          const currentTasks = settings.adTasks || [];
+          const updatedTasks = currentTasks.filter(task => task.id !== adId);
+          await updateDoc(doc(db, 'system_settings', 'config'), {
+            adTasks: updatedTasks
+          });
+          showAdminAlert("AD TASK DELETED", "Ad task successfully removed from global list.", "success");
+        } catch (err: any) {
+          showAdminAlert("ERROR", "Error removing ad task: " + err.message, "error");
+        }
+      }
+    );
   };
 
   // Support Ticket reply handling on admin thread
@@ -1445,6 +1523,18 @@ export default function AdminPanel({
                     />
                   </div>
 
+                  <div>
+                    <label className="block text-[10px] font-semibold text-slate-405 uppercase tracking-wider mb-1.5">Daily Ad Tasks Count (Leave blank for default)</label>
+                    <input
+                      id="plan-f-tasks"
+                      type="number"
+                      value={newPlanTasks}
+                      onChange={(e) => setNewPlanTasks(e.target.value)}
+                      placeholder="e.g. 5"
+                      className="block w-full px-3 py-2 text-xs rounded-xl bg-zinc-800 border border-zinc-700 text-white focus:ring-2 focus:ring-amber-500 outline-none"
+                    />
+                  </div>
+
                   <div className="flex items-center gap-2 py-1">
                     <input
                       id="plan-f-active"
@@ -1488,6 +1578,7 @@ export default function AdminPanel({
                           <p>Investment Cost: <strong className="text-white">৳{p.cost} BDT</strong></p>
                           <p>Daily Bonus Reward: <strong className="text-emerald-400">৳{p.dailyBonus}/day</strong></p>
                           <p>Plan Life duration: <strong className="text-white">{p.durationDays} Days</strong></p>
+                          <p>Daily Ad Tasks: <strong className="text-amber-400">{p.dailyTasks || Math.floor(p.cost / 200)} Tasks</strong></p>
                         </div>
                       </div>
 
@@ -1663,7 +1754,8 @@ export default function AdminPanel({
 
           {/* I. APP BRANDING, MARQUEE & COMMISSION SETTINGS MODIFICATION SCREEN */}
           {activeTab === 'settings' && (
-            <form onSubmit={handleSaveSettings} className={`p-6 rounded-3xl border ${isDark ? 'bg-zinc-900 border-zinc-850' : 'bg-white border-slate-200'} space-y-6`}>
+            <div className="space-y-8">
+              <form onSubmit={handleSaveSettings} className={`p-6 rounded-3xl border ${isDark ? 'bg-zinc-900 border-zinc-850' : 'bg-white border-slate-200'} space-y-6`}>
               <div>
                 <h3 className="text-sm font-bold uppercase tracking-wider text-amber-500">Global Website branding & Gateway parameters</h3>
                 <p className="text-xs text-slate-400 mt-1">Configure user-facing text banners, marquee notice, deposit addresses, and referral commission percentages.</p>
@@ -1800,7 +1892,128 @@ export default function AdminPanel({
                 </button>
               </div>
             </form>
-          )}
+
+            {/* Global Daily Ad Tasks Configurator */}
+            <div className={`p-6 rounded-3xl border ${isDark ? 'bg-zinc-900 border-zinc-850' : 'bg-white border-slate-200'} space-y-6`}>
+              <div>
+                <h3 className="text-sm font-black uppercase tracking-wider text-amber-550 flex items-center gap-2">
+                  <Tv className="w-4.5 h-4.5 text-amber-500 animate-pulse" />
+                  Global Daily Ads Tasks Configurator
+                </h3>
+                <p className="text-xs text-slate-400 mt-1">Deploy, monitor, or remove active advertising links and click-through cash rewards that are shown on user dashboards.</p>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Add ad task form */}
+                <form onSubmit={handleAddAdTask} className="p-5 bg-zinc-950/60 border border-zinc-850 rounded-2xl space-y-4 h-fit">
+                  <h4 className="text-[11px] font-black text-amber-500 uppercase tracking-widest">Register Custom Ad Campaign</h4>
+                  
+                  <div>
+                    <label className="block text-[10px] text-slate-450 uppercase mb-1">Ad Campaign Title</label>
+                    <input
+                      id="new-ad-title-input"
+                      type="text"
+                      required
+                      value={newAdTitle}
+                      onChange={(e) => setNewAdTitle(e.target.value)}
+                      placeholder="e.g. Premium Sponsored Video"
+                      className="block w-full px-3 py-2 text-xs bg-zinc-900 border border-zinc-800 rounded-xl text-white outline-none focus:ring-1 focus:ring-amber-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] text-slate-450 uppercase mb-1">Ad URL Link (with http:// or https://)</label>
+                    <input
+                      id="new-ad-link-input"
+                      type="url"
+                      required
+                      value={newAdLink}
+                      onChange={(e) => setNewAdLink(e.target.value)}
+                      placeholder="https://www.sponsor-ads.com"
+                      className="block w-full px-3 py-2 text-xs bg-zinc-900 border border-zinc-800 rounded-xl text-white outline-none focus:ring-1 focus:ring-amber-500"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[10px] text-slate-450 uppercase mb-1">Timer (Sec)</label>
+                      <input
+                        id="new-ad-duration-input"
+                        type="number"
+                        required
+                        min={5}
+                        max={120}
+                        value={newAdDuration}
+                        onChange={(e) => setNewAdDuration(e.target.value)}
+                        className="block w-full px-3 py-2 text-xs bg-zinc-900 border border-zinc-800 rounded-xl text-white outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] text-slate-450 uppercase mb-1">Reward (৳ BDT)</label>
+                      <input
+                        id="new-ad-reward-input"
+                        type="number"
+                        required
+                        min={1}
+                        value={newAdReward}
+                        onChange={(e) => setNewAdReward(e.target.value)}
+                        className="block w-full px-3 py-2 text-xs bg-zinc-900 border border-zinc-800 rounded-xl text-white outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <button
+                    id="btn-submit-new-ad"
+                    type="submit"
+                    className="w-full py-2.5 bg-amber-600 hover:bg-amber-500 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition-all shadow"
+                  >
+                    Deploy Ad Campaign
+                  </button>
+                </form>
+
+                {/* Active ad tasks list */}
+                <div className="lg:col-span-2 space-y-4">
+                  <h4 className="text-xs font-bold text-white uppercase tracking-wider">Active Ad Campaigns list ({settings.adTasks?.length || 0})</h4>
+                  
+                  {(!settings.adTasks || settings.adTasks.length === 0) ? (
+                    <div className="p-8 text-center border border-dashed border-zinc-800 rounded-2xl bg-zinc-950/20 text-xs text-slate-500">
+                      No custom ad campaigns deployed yet. User dashboards will view standard fallback tasks (10 seconds duration, ৳10 reward each).
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {settings.adTasks.map((task, index) => (
+                        <div key={task.id || index} className="p-4 bg-zinc-950/30 border border-zinc-850 rounded-2xl flex flex-col justify-between">
+                          <div>
+                            <div className="flex justify-between items-start gap-2 mb-1.5">
+                              <h5 className="text-xs font-bold text-white truncate max-w-[150px]">{task.title}</h5>
+                              <span className="bg-emerald-500/10 text-emerald-400 font-bold text-[9px] px-2 py-0.5 rounded-full border border-emerald-500/15">
+                                ৳{task.reward} BDT
+                              </span>
+                            </div>
+                            <p className="text-[10px] text-slate-500 font-mono truncate mb-2">{task.adLink}</p>
+                            <p className="text-[10px] text-slate-400">Timer requirement: <strong className="text-white">{task.duration} seconds</strong></p>
+                          </div>
+
+                          <div className="border-t border-zinc-800/40 mt-3 pt-2 text-right">
+                            <button
+                              id={`remove-ad-${task.id}`}
+                              type="button"
+                              onClick={() => handleRemoveAdTask(task.id)}
+                              className="text-rose-400 hover:text-rose-350 text-[9px] font-black uppercase tracking-widest flex items-center gap-1 float-right"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" /> Remove campaign
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+          </div>
+        )}
 
         </div>
 

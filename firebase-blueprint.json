@@ -192,9 +192,29 @@
         "contactEmail": { "type": "string" }
       },
       "required": ["id", "platformName"]
+    },
+    "TaskCompletion": {
+      "title": "TaskCompletion",
+      "description": "Tracks completed daily ad watch tasks by a client.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "uid": { "type": "string" },
+        "userEmail": { "type": "string" },
+        "adId": { "type": "string" },
+        "adTitle": { "type": "string" },
+        "reward": { "type": "number" },
+        "completedAt": { "type": "number" },
+        "dateStr": { "type": "string" }
+      },
+      "required": ["uid", "adId", "reward", "completedAt"]
     }
   },
   "firestore": {
+    "/task_completions/{id}": {
+      "schema": "TaskCompletion",
+      "description": "Holds completed daily tasks records."
+    },
     "/system_settings/{id}": {
       "schema": "SystemSettings",
       "description": "Holds the master system config document ('config')."
