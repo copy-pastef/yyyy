@@ -31,6 +31,7 @@ export interface InvestmentPlan {
   active: boolean; // whether users can buy it
   createdAt: number;
   dailyTasks?: number; // count of daily tasks
+  tasks?: AdTask[]; // Custom plan tasks configured by admin
 }
 
 export interface UserInvestment {
@@ -48,6 +49,7 @@ export interface UserInvestment {
   status: 'active' | 'expired';
   durationDays?: number;
   dailyTasks?: number; // count of daily tasks
+  tasks?: AdTask[]; // Snapshot of custom plan tasks purchased
 }
 
 export interface DepositRequest {

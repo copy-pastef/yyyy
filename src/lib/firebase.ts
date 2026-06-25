@@ -56,6 +56,26 @@ export interface FirestoreErrorInfo {
 
 export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
   const errMessage = error instanceof Error ? error.message : String(error);
+  const errCode = (error && typeof error === 'object' && 'code' in error) ? (error as any).code : '';
+
+  // Check if it is a connectivity/offline/timeout error
+  const isOfflineError = 
+    errCode === 'unavailable' || 
+    errCode === 'deadline-exceeded' || 
+    errMessage.toLowerCase().includes('unavailable') ||
+    errMessage.toLowerCase().includes('deadline') ||
+    errMessage.toLowerCase().includes('could not reach cloud firestore backend') ||
+    errMessage.toLowerCase().includes('failed to connect') ||
+    errMessage.toLowerCase().includes('network');
+
+  if (isOfflineError) {
+    console.warn(
+      `[Firestore Offline] Connection warning during '${operationType}' on '${path}':`, 
+      errMessage, 
+      '. App will operate gracefully using offline cache/local state.'
+    );
+    return; // Do not throw to prevent crashing the user interface
+  }
   
   const errInfo: FirestoreErrorInfo = {
     error: errMessage,

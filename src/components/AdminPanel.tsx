@@ -56,7 +56,8 @@ import {
   HelpCircle,
   TrendingUp,
   DollarSign,
-  Tv
+  Tv,
+  LogOut
 } from 'lucide-react';
 
 interface AdminPanelProps {
@@ -101,6 +102,25 @@ export default function AdminPanel({
   const [newPlanDays, setNewPlanDays] = useState('30');
   const [newPlanActive, setNewPlanActive] = useState(true);
   const [newPlanTasks, setNewPlanTasks] = useState('');
+
+  // Plan tasks creation state (5 customizable tasks)
+  const [createPlanTasks, setCreatePlanTasks] = useState<Array<{ title: string; adLink: string; reward: string }>>([
+    { title: 'Task 1: Watch Sponsor Video', adLink: 'https://www.youtube.com/embed/dQw4w9WgXcQ', reward: '2' },
+    { title: 'Task 2: Visit Partner Website', adLink: 'https://www.google.com', reward: '2' },
+    { title: 'Task 3: Learn Investment Rules', adLink: 'https://www.wikipedia.org', reward: '2' },
+    { title: 'Task 4: Explore Sponsor Platform', adLink: 'https://www.github.com', reward: '2' },
+    { title: 'Task 5: Complete Premium Offer', adLink: 'https://www.amazon.com', reward: '2' }
+  ]);
+
+  // Edit tasks for an existing plan
+  const [editPlanTasksSelected, setEditPlanTasksSelected] = useState<any | null>(null);
+  const [editPlanTasks, setEditPlanTasks] = useState<Array<{ title: string; adLink: string; reward: string }>>([
+    { title: '', adLink: '', reward: '' },
+    { title: '', adLink: '', reward: '' },
+    { title: '', adLink: '', reward: '' },
+    { title: '', adLink: '', reward: '' },
+    { title: '', adLink: '', reward: '' }
+  ]);
 
   // Settings editing states
   const [editPlatformName, setEditPlatformName] = useState(settings.platformName);
@@ -690,7 +710,16 @@ export default function AdminPanel({
       const planCost = Number(newPlanCost);
       const planBonus = Number(newPlanBonus);
       const planDays = Number(newPlanDays);
-      const planTasks = newPlanTasks ? Number(newPlanTasks) : Math.floor(planCost / 200);
+      const planTasks = newPlanTasks ? Number(newPlanTasks) : 5;
+
+      // Map and parse the 5 custom tasks
+      const parsedTasks = createPlanTasks.map((t, idx) => ({
+        id: `task_${idx + 1}`,
+        title: t.title.trim() || `Task ${idx + 1}`,
+        adLink: t.adLink.trim() || 'https://www.youtube.com/embed/dQw4w9WgXcQ',
+        duration: 10,
+        reward: Number(t.reward) || 0
+      }));
 
       await setDoc(doc(db, 'investment_plans', planCode), {
         id: planCode,
@@ -700,6 +729,7 @@ export default function AdminPanel({
         durationDays: planDays,
         active: newPlanActive,
         dailyTasks: planTasks,
+        tasks: parsedTasks,
         createdAt: Date.now()
       });
 
@@ -709,7 +739,14 @@ export default function AdminPanel({
       setNewPlanBonus('');
       setNewPlanDays('30');
       setNewPlanTasks('');
-      showAdminAlert("PLAN CREATED", `Investment portfolio plan "${newPlanName}" successfully registered inside the platform!`, "success");
+      setCreatePlanTasks([
+        { title: 'Task 1: Watch Sponsor Video', adLink: 'https://www.youtube.com/embed/dQw4w9WgXcQ', reward: '2' },
+        { title: 'Task 2: Visit Partner Website', adLink: 'https://www.google.com', reward: '2' },
+        { title: 'Task 3: Learn Investment Rules', adLink: 'https://www.wikipedia.org', reward: '2' },
+        { title: 'Task 4: Explore Sponsor Platform', adLink: 'https://www.github.com', reward: '2' },
+        { title: 'Task 5: Complete Premium Offer', adLink: 'https://www.amazon.com', reward: '2' }
+      ]);
+      showAdminAlert("PLAN CREATED", `Investment portfolio plan "${newPlanName}" with 5 custom tasks successfully registered inside the platform!`, "success");
     } catch (err: any) {
       showAdminAlert("ERROR", "Error saving custom plan: " + err.message, "error");
     }
@@ -728,6 +765,42 @@ export default function AdminPanel({
         }
       }
     );
+  };
+
+  const handleOpenEditTasks = (plan: any) => {
+    setEditPlanTasksSelected(plan);
+    const existingTasks = plan.tasks || [];
+    const populated = Array.from({ length: 5 }).map((_, idx) => {
+      const existing = existingTasks[idx];
+      return {
+        title: existing?.title || `Task ${idx + 1}: Default Sponsor Ad`,
+        adLink: existing?.adLink || 'https://www.youtube.com/embed/dQw4w9WgXcQ',
+        reward: existing?.reward !== undefined ? String(existing.reward) : '2'
+      };
+    });
+    setEditPlanTasks(populated);
+  };
+
+  const handleSaveEditedTasks = async () => {
+    if (!editPlanTasksSelected) return;
+    try {
+      const parsedTasks = editPlanTasks.map((t, idx) => ({
+        id: `task_${idx + 1}`,
+        title: t.title.trim() || `Task ${idx + 1}`,
+        adLink: t.adLink.trim() || 'https://www.youtube.com/embed/dQw4w9WgXcQ',
+        duration: 10,
+        reward: Number(t.reward) || 0
+      }));
+
+      await updateDoc(doc(db, 'investment_plans', editPlanTasksSelected.id), {
+        tasks: parsedTasks
+      });
+
+      setEditPlanTasksSelected(null);
+      showAdminAlert("TASKS UPDATED", "Plan tasks have been updated successfully! Users with active plans will instantly see these updated tasks.", "success");
+    } catch (err: any) {
+      showAdminAlert("ERROR", "Error updating plan tasks: " + err.message, "error");
+    }
   };
 
   // Save Website Settings
@@ -987,11 +1060,26 @@ export default function AdminPanel({
             <button 
               id="admin-theme-switch"
               onClick={() => setTheme(isDark ? 'light' : 'dark')}
-              className={`p-2 rounded-xl border transition-all ${
+              className={`p-2 px-3 rounded-xl border text-xs font-semibold transition-all ${
                 isDark ? 'border-zinc-850 text-zinc-300 hover:text-white hover:bg-zinc-800' : 'border-slate-200 text-slate-700 hover:bg-slate-100'
               }`}
             >
-              Toggle Light/Dark Theme
+              Toggle {isDark ? 'Light' : 'Dark'} Mode
+            </button>
+
+            {/* Header Sign Out button */}
+            <button 
+              id="admin-header-logout"
+              onClick={onLogout}
+              className={`p-2 px-3 rounded-xl border flex items-center gap-1.5 transition-all text-xs font-bold ${
+                isDark 
+                  ? 'border-zinc-800 text-rose-400 hover:bg-rose-500/10 hover:border-rose-500/20' 
+                  : 'border-slate-200 text-rose-600 hover:bg-rose-50 hover:border-rose-200'
+              }`}
+              title="Sign Out System"
+            >
+              <LogOut className="w-4 h-4" />
+              <span>Sign Out</span>
             </button>
           </div>
         </header>
@@ -1300,6 +1388,113 @@ export default function AdminPanel({
             </div>
           )}
 
+          {/* EDIT PLAN TASKS MODAL */}
+          {editPlanTasksSelected && (
+            <div id="edit-plan-tasks-modal" className="fixed inset-0 z-55 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+              <div className="bg-zinc-900 border border-zinc-800 rounded-3xl max-w-2xl w-full p-6 space-y-6 max-h-[90vh] overflow-y-auto">
+                
+                <div className="flex justify-between items-center border-b border-zinc-800/40 pb-3">
+                  <div>
+                    <h3 className="text-sm font-black text-white uppercase tracking-wider">Setup Tasks Links & Rewards</h3>
+                    <p className="text-xs text-amber-500 mt-0.5">Plan: {editPlanTasksSelected.name} (Code: {editPlanTasksSelected.id})</p>
+                  </div>
+                  <button 
+                    id="btn-close-tasks-management"
+                    onClick={() => setEditPlanTasksSelected(null)} 
+                    className="p-1 text-slate-500 hover:text-white"
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                <div className="space-y-4">
+                  <p className="text-xs text-slate-400">
+                    Set the 5 loadable task links and individual rewards in BDT for this plan. When a user buys this plan, they will see these 5 tasks to claim money.
+                  </p>
+
+                  <div className="space-y-3">
+                    {editPlanTasks.map((task, idx) => (
+                      <div key={idx} className="p-4 bg-zinc-950/50 rounded-2xl border border-zinc-850 space-y-3">
+                        <div className="flex justify-between items-center">
+                          <span className="text-[10px] font-black uppercase tracking-widest text-amber-550">Task {idx + 1} Settings</span>
+                          <span className="text-[9px] font-mono text-slate-500">Task Ref ID: task_{idx + 1}</span>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          <div>
+                            <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1">Task Display Title</label>
+                            <input
+                              type="text"
+                              value={task.title}
+                              onChange={(e) => {
+                                const updated = [...editPlanTasks];
+                                updated[idx].title = e.target.value;
+                                setEditPlanTasks(updated);
+                              }}
+                              placeholder="e.g. Watch Sponsor Video"
+                              className="block w-full px-3 py-2 text-xs rounded-xl bg-zinc-800 border border-zinc-700 text-white outline-none focus:border-amber-500"
+                              required
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1">Task Load Link (URL)</label>
+                            <input
+                              type="text"
+                              value={task.adLink}
+                              onChange={(e) => {
+                                const updated = [...editPlanTasks];
+                                updated[idx].adLink = e.target.value;
+                                setEditPlanTasks(updated);
+                              }}
+                              placeholder="e.g. https://www.youtube.com/embed/..."
+                              className="block w-full px-3 py-2 text-xs rounded-xl bg-zinc-800 border border-zinc-700 text-white outline-none focus:border-amber-500"
+                              required
+                            />
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1">Task Reward Payout (৳ BDT)</label>
+                          <input
+                            type="number"
+                            value={task.reward}
+                            onChange={(e) => {
+                              const updated = [...editPlanTasks];
+                              updated[idx].reward = e.target.value;
+                              setEditPlanTasks(updated);
+                            }}
+                            placeholder="e.g. 5"
+                            className="block w-full max-w-[200px] px-3 py-2 text-xs rounded-xl bg-zinc-800 border border-zinc-700 text-white outline-none focus:border-amber-500"
+                            required
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-3 pt-3 border-t border-zinc-800/40">
+                  <button
+                    id="btn-cancel-edit-tasks"
+                    onClick={() => setEditPlanTasksSelected(null)}
+                    className="px-4 py-2 text-xs font-bold text-slate-400 hover:text-white rounded-xl bg-zinc-800/40 hover:bg-zinc-800 transition-all"
+                  >
+                    CANCEL
+                  </button>
+                  <button
+                    id="btn-save-edit-tasks"
+                    onClick={handleSaveEditedTasks}
+                    className="px-6 py-2 text-xs font-bold text-zinc-900 bg-emerald-400 hover:bg-emerald-350 rounded-xl transition-all shadow-md animate-none"
+                  >
+                    SAVE TASK SETTINGS
+                  </button>
+                </div>
+
+              </div>
+            </div>
+          )}
+
           {/* D. DEPOSITS LEDGER MANAGEMENT SCREEN */}
           {activeTab === 'deposits' && (
             <div className={`p-6 rounded-3xl border ${isDark ? 'bg-zinc-900 border-zinc-855' : 'bg-white border-slate-200'}`}>
@@ -1546,6 +1741,67 @@ export default function AdminPanel({
                     <label className="text-[10px] text-slate-400 select-none">Set Activation status immediately visible to users.</label>
                   </div>
 
+                  {/* Custom 5 Tasks Section */}
+                  <div className="border-t border-zinc-800 pt-4 space-y-3">
+                    <div className="flex justify-between items-center">
+                      <h4 className="text-[10px] font-black uppercase tracking-widest text-amber-500">Configure 5 Tasks for this Plan</h4>
+                      <span className="bg-amber-500/10 text-amber-400 text-[8px] font-black uppercase px-2 py-0.5 rounded border border-amber-500/20">5 Tasks Limit</span>
+                    </div>
+                    <p className="text-[9px] text-slate-400 leading-relaxed">
+                      Specify the loadable video/web links and individual reward payouts for completing each task under this plan.
+                    </p>
+                    
+                    {createPlanTasks.map((task, idx) => (
+                      <div key={idx} className="p-3 bg-zinc-950/40 rounded-xl border border-zinc-850 space-y-2">
+                        <span className="text-[9px] font-black uppercase tracking-wider text-amber-400">Task {idx + 1} Configuration</span>
+                        <div>
+                          <input
+                            type="text"
+                            value={task.title}
+                            onChange={(e) => {
+                              const updated = [...createPlanTasks];
+                              updated[idx].title = e.target.value;
+                              setCreatePlanTasks(updated);
+                            }}
+                            placeholder="Task Title (e.g., Watch YouTube Video)"
+                            className="block w-full px-2.5 py-1.5 text-[10px] rounded-lg bg-zinc-800 border border-zinc-700 text-white outline-none focus:border-amber-500"
+                            required
+                          />
+                        </div>
+                        <div className="grid grid-cols-3 gap-2">
+                          <div className="col-span-2">
+                            <input
+                              type="text"
+                              value={task.adLink}
+                              onChange={(e) => {
+                                const updated = [...createPlanTasks];
+                                updated[idx].adLink = e.target.value;
+                                setCreatePlanTasks(updated);
+                              }}
+                              placeholder="Task link (URL)"
+                              className="block w-full px-2.5 py-1.5 text-[10px] rounded-lg bg-zinc-800 border border-zinc-700 text-white outline-none focus:border-amber-500"
+                              required
+                            />
+                          </div>
+                          <div>
+                            <input
+                              type="number"
+                              value={task.reward}
+                              onChange={(e) => {
+                                const updated = [...createPlanTasks];
+                                updated[idx].reward = e.target.value;
+                                setCreatePlanTasks(updated);
+                              }}
+                              placeholder="Reward ৳"
+                              className="block w-full px-2.5 py-1.5 text-[10px] rounded-lg bg-zinc-800 border border-zinc-700 text-white outline-none focus:border-amber-500"
+                              required
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
                   <button
                     id="btn-plan-f-submit"
                     type="submit"
@@ -1582,11 +1838,19 @@ export default function AdminPanel({
                         </div>
                       </div>
 
-                      <div className="border-t border-zinc-800/40 mt-4 pt-3 text-right">
+                      <div className="border-t border-zinc-800/40 mt-4 pt-3 flex justify-between items-center">
+                        <button 
+                          id={`edit-tasks-${p.id}`}
+                          onClick={() => handleOpenEditTasks(p)}
+                          className="text-amber-500 hover:text-amber-400 flex items-center gap-1 font-bold uppercase text-[9px] tracking-widest"
+                        >
+                          <Settings className="w-3.5 h-3.5" /> Setup Tasks Links
+                        </button>
+
                         <button 
                           id={`delete-plan-${p.id}`}
                           onClick={() => handleDeletePlan(p.id)}
-                          className="text-rose-400 hover:text-rose-300 flex items-center gap-1.5 font-bold uppercase text-[9px] float-right tracking-widest"
+                          className="text-rose-400 hover:text-rose-300 flex items-center gap-1.5 font-bold uppercase text-[9px] tracking-widest"
                         >
                           <Trash2 className="w-3.5 h-3.5" /> Remove portfolio
                         </button>

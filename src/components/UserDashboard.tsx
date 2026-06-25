@@ -430,18 +430,38 @@ export default function UserDashboard({
   }, [activeAd, countdown]);
 
   const handleStartTask = (ad: AdTask) => {
-    // 1. Calculate active investments total tasks limit
+    // 1. Calculate active investments total tasks limit based on the count of active plan tasks
     const activeInvests = myInvestments.filter(i => i.status === 'active');
-    let totalLimit = 0;
-    activeInvests.forEach(i => {
-      totalLimit += i.dailyTasks || Math.floor(i.cost / 200);
+    
+    // Construct all tasks available to the user based on their active plans
+    const userActivePlanTasks: any[] = [];
+    activeInvests.forEach((invest) => {
+      const tasks = invest.tasks || [
+        { id: 'task_1', title: 'Task 1: Watch Sponsor Video', adLink: 'https://www.youtube.com/embed/dQw4w9WgXcQ', duration: 10, reward: invest.dailyBonus / 5 },
+        { id: 'task_2', title: 'Task 2: Visit Partner Website', adLink: 'https://www.google.com', duration: 10, reward: invest.dailyBonus / 5 },
+        { id: 'task_3', title: 'Task 3: Learn Investment Rules', adLink: 'https://www.wikipedia.org', duration: 10, reward: invest.dailyBonus / 5 },
+        { id: 'task_4', title: 'Task 4: Explore Sponsor Platform', adLink: 'https://www.github.com', duration: 10, reward: invest.dailyBonus / 5 },
+        { id: 'task_5', title: 'Task 5: Complete Premium Offer', adLink: 'https://www.amazon.com', duration: 10, reward: invest.dailyBonus / 5 }
+      ];
+      tasks.forEach((t: any) => {
+        userActivePlanTasks.push({
+          ...t,
+          uniqueTaskId: `${invest.id}_${t.id}`
+        });
+      });
     });
+
+    const totalLimit = userActivePlanTasks.length;
 
     // 2. Count completed tasks today
     const startOfToday = new Date();
     startOfToday.setHours(0, 0, 0, 0);
     const startOfTodayMs = startOfToday.getTime();
-    const completedToday = taskCompletions.filter(tc => tc.completedAt >= startOfTodayMs).length;
+    
+    // Check completed tasks that are actually part of current active plans
+    const completedToday = taskCompletions.filter(tc => 
+      userActivePlanTasks.some(ut => ut.uniqueTaskId === tc.adId)
+    ).length;
 
     if (completedToday >= totalLimit) {
       alert(`⚠️ You have reached your daily limit of ${totalLimit} tasks. Upgrade your plan or buy more plans to get more daily tasks!`);
@@ -465,11 +485,27 @@ export default function UserDashboard({
 
       // Double-check limits
       const activeInvests = myInvestments.filter(i => i.status === 'active');
-      let totalLimit = 0;
-      activeInvests.forEach(i => {
-        totalLimit += i.dailyTasks || Math.floor(i.cost / 200);
+      const userActivePlanTasks: any[] = [];
+      activeInvests.forEach((invest) => {
+        const tasks = invest.tasks || [
+          { id: 'task_1', title: 'Task 1: Watch Sponsor Video', adLink: 'https://www.youtube.com/embed/dQw4w9WgXcQ', duration: 10, reward: invest.dailyBonus / 5 },
+          { id: 'task_2', title: 'Task 2: Visit Partner Website', adLink: 'https://www.google.com', duration: 10, reward: invest.dailyBonus / 5 },
+          { id: 'task_3', title: 'Task 3: Learn Investment Rules', adLink: 'https://www.wikipedia.org', duration: 10, reward: invest.dailyBonus / 5 },
+          { id: 'task_4', title: 'Task 4: Explore Sponsor Platform', adLink: 'https://www.github.com', duration: 10, reward: invest.dailyBonus / 5 },
+          { id: 'task_5', title: 'Task 5: Complete Premium Offer', adLink: 'https://www.amazon.com', duration: 10, reward: invest.dailyBonus / 5 }
+        ];
+        tasks.forEach((t: any) => {
+          userActivePlanTasks.push({
+            ...t,
+            uniqueTaskId: `${invest.id}_${t.id}`
+          });
+        });
       });
-      const completedToday = taskCompletions.filter(tc => tc.completedAt >= startOfTodayMs).length;
+
+      const totalLimit = userActivePlanTasks.length;
+      const completedToday = taskCompletions.filter(tc => 
+        userActivePlanTasks.some(ut => ut.uniqueTaskId === tc.adId)
+      ).length;
 
       if (completedToday >= totalLimit) {
         alert("⚠️ You have already completed your maximum daily tasks!");
@@ -478,19 +514,22 @@ export default function UserDashboard({
         return;
       }
 
+      const rewardAmt = activeAd.reward || 10;
+      const uniqueAdId = (activeAd as any).uniqueTaskId || activeAd.id;
+      const planLabel = (activeAd as any).planName ? `Plan: ${(activeAd as any).planName}` : 'Sponsor Ad';
+
       // 1. Record task completion
       await addDoc(collection(db, 'task_completions'), {
         uid: profile.uid,
         userEmail: profile.email,
-        adId: activeAd.id,
-        adTitle: activeAd.title,
-        reward: activeAd.reward || 10,
+        adId: uniqueAdId,
+        adTitle: `${activeAd.title} (${planLabel})`,
+        reward: rewardAmt,
         completedAt: now,
         dateStr: new Date(now).toISOString().split('T')[0]
       });
 
       // 2. Add BDT reward to user's wallet balance
-      const rewardAmt = activeAd.reward || 10;
       const userRef = doc(db, 'users', profile.uid);
       await updateDoc(userRef, {
         walletBalance: profile.walletBalance + rewardAmt,
@@ -503,7 +542,7 @@ export default function UserDashboard({
         userEmail: profile.email,
         amount: rewardAmt,
         type: 'bonus',
-        details: `Completed Daily Ad Task: "${activeAd.title}" (৳${rewardAmt} credited)`,
+        details: `Completed Daily Task: "${activeAd.title}" (${planLabel}) (৳${rewardAmt} credited)`,
         createdAt: now
       });
 
@@ -511,7 +550,7 @@ export default function UserDashboard({
       await addDoc(collection(db, 'notifications'), {
         uid: profile.uid,
         title: 'Task Reward Credited! 🎉',
-        message: `৳${rewardAmt} BDT has been credited to your wallet for watching: "${activeAd.title}".`,
+        message: `৳${rewardAmt} BDT has been credited to your wallet for completing task: "${activeAd.title}" (${planLabel}).`,
         read: false,
         createdAt: now
       });
@@ -560,6 +599,15 @@ export default function UserDashboard({
       const expiresAt = now + (plan.durationDays * 24 * 60 * 60 * 1000);
 
       // 1. Create User Investment
+      const defaultTasks = [
+        { id: 'task_1', title: 'Task 1: Watch Sponsor Video', adLink: 'https://www.youtube.com/embed/dQw4w9WgXcQ', duration: 10, reward: plan.dailyBonus / 5 },
+        { id: 'task_2', title: 'Task 2: Visit Partner Website', adLink: 'https://www.google.com', duration: 10, reward: plan.dailyBonus / 5 },
+        { id: 'task_3', title: 'Task 3: Learn Investment Rules', adLink: 'https://www.wikipedia.org', duration: 10, reward: plan.dailyBonus / 5 },
+        { id: 'task_4', title: 'Task 4: Explore Sponsor Platform', adLink: 'https://www.github.com', duration: 10, reward: plan.dailyBonus / 5 },
+        { id: 'task_5', title: 'Task 5: Complete Premium Offer', adLink: 'https://www.amazon.com', duration: 10, reward: plan.dailyBonus / 5 }
+      ];
+      const tasksToSave = plan.tasks && plan.tasks.length > 0 ? plan.tasks : defaultTasks;
+
       await addDoc(collection(db, 'user_investments'), {
         uid: profile.uid,
         userEmail: profile.email,
@@ -573,7 +621,8 @@ export default function UserDashboard({
         daysClaimed: 0,
         status: 'active',
         durationDays: plan.durationDays,
-        dailyTasks: plan.dailyTasks || Math.floor(plan.cost / 200)
+        dailyTasks: plan.dailyTasks || 5,
+        tasks: tasksToSave
       });
 
       // 2. Subtract user wallet balance
@@ -1040,6 +1089,21 @@ export default function UserDashboard({
               }`}
             >
               {isDark ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4" />}
+            </button>
+
+            {/* Header logout button */}
+            <button 
+              id="header-logout"
+              onClick={onLogout}
+              className={`p-2 px-3 rounded-xl border flex items-center gap-1.5 transition-all text-xs font-bold ${
+                isDark 
+                  ? 'border-zinc-800 text-rose-400 hover:bg-rose-500/10 hover:border-rose-500/20' 
+                  : 'border-slate-200 text-rose-600 hover:bg-rose-50 hover:border-rose-200'
+              }`}
+              title="Sign Out"
+            >
+              <LogOut className="w-4 h-4" />
+              <span>Sign Out</span>
             </button>
           </div>
         </header>
@@ -1995,30 +2059,53 @@ export default function UserDashboard({
           {/* H. DAILY ADS TASKS PAGE */}
           {activeTab === 'tasks' && (() => {
             const activeInvestments = myInvestments.filter(i => i.status === 'active');
-            const totalTasksLimit = activeInvestments.reduce((acc, curr) => {
-              return acc + (curr.dailyTasks || Math.floor(curr.cost / 200));
-            }, 0);
+
+            // Construct all tasks available to the user based on their active plans
+            const userActivePlanTasks: any[] = [];
+            activeInvestments.forEach((invest) => {
+              const tasks = invest.tasks || [
+                { id: 'task_1', title: 'Task 1: Watch Sponsor Video', adLink: 'https://www.youtube.com/embed/dQw4w9WgXcQ', duration: 10, reward: invest.dailyBonus / 5 },
+                { id: 'task_2', title: 'Task 2: Visit Partner Website', adLink: 'https://www.google.com', duration: 10, reward: invest.dailyBonus / 5 },
+                { id: 'task_3', title: 'Task 3: Learn Investment Rules', adLink: 'https://www.wikipedia.org', duration: 10, reward: invest.dailyBonus / 5 },
+                { id: 'task_4', title: 'Task 4: Explore Sponsor Platform', adLink: 'https://www.github.com', duration: 10, reward: invest.dailyBonus / 5 },
+                { id: 'task_5', title: 'Task 5: Complete Premium Offer', adLink: 'https://www.amazon.com', duration: 10, reward: invest.dailyBonus / 5 }
+              ];
+              tasks.forEach((t: any) => {
+                userActivePlanTasks.push({
+                  ...t,
+                  planId: invest.planId,
+                  planName: invest.planName,
+                  investmentId: invest.id,
+                  uniqueTaskId: `${invest.id}_${t.id}`
+                });
+              });
+            });
+
+            const totalTasksLimit = userActivePlanTasks.length;
 
             const startOfToday = new Date();
             startOfToday.setHours(0, 0, 0, 0);
             const startOfTodayMs = startOfToday.getTime();
 
             const completionsToday = taskCompletions.filter(tc => tc.completedAt >= startOfTodayMs);
-            const completedTasksCount = completionsToday.length;
-            const remainingTasksCount = Math.max(0, totalTasksLimit - completedTasksCount);
-            const earningsToday = completionsToday.reduce((acc, curr) => acc + (curr.reward || 10), 0);
+            
+            // Check completed tasks that are actually part of current active plans
+            const completedTasksCount = completionsToday.filter(tc => 
+              userActivePlanTasks.some(ut => ut.uniqueTaskId === tc.adId)
+            ).length;
 
-            const isAdCompletedToday = (adId: string) => {
-              return completionsToday.some(tc => tc.adId === adId);
+            const remainingTasksCount = Math.max(0, totalTasksLimit - completedTasksCount);
+            
+            // Calculate today's earnings purely from active plan task completions
+            const earningsToday = completionsToday
+              .filter(tc => userActivePlanTasks.some(ut => ut.uniqueTaskId === tc.adId))
+              .reduce((acc, curr) => acc + (curr.reward || 0), 0);
+
+            const isAdCompletedToday = (uniqueTaskId: string) => {
+              return completionsToday.some(tc => tc.adId === uniqueTaskId);
             };
 
-            const adsToDisplay = systemSettings.adTasks || [
-              { id: "ad_1", title: "Premium Sponsor Ad 1", adLink: "https://www.youtube.com/embed/dQw4w9WgXcQ", duration: 10, reward: 10 },
-              { id: "ad_2", title: "Smart Crypto Investment Ad 2", adLink: "https://www.google.com", duration: 10, reward: 10 },
-              { id: "ad_3", title: "Real Estate Growth Ad 3", adLink: "https://www.wikipedia.org", duration: 10, reward: 10 },
-              { id: "ad_4", title: "Future Stocks Trading Ad 4", adLink: "https://www.github.com", duration: 10, reward: 10 },
-              { id: "ad_5", title: "E-Commerce Success Ad 5", adLink: "https://www.amazon.com", duration: 10, reward: 10 }
-            ];
+            const adsToDisplay = userActivePlanTasks;
 
             return (
               <div className="space-y-6">
@@ -2030,7 +2117,7 @@ export default function UserDashboard({
                       Daily Ads Tasks Portal
                     </h3>
                     <p className="text-xs text-slate-400 mt-1">
-                      Watch premium sponsor ads for 10 seconds to instantly claim your ৳10 BDT daily tasks reward!
+                      Complete tasks assigned to your active investment plans to instantly earn cash rewards set by admin.
                     </p>
                   </div>
                   {activeInvestments.length > 0 && (
@@ -2047,7 +2134,7 @@ export default function UserDashboard({
                     <span className="block text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-2">Today's Progress</span>
                     <div className="flex items-baseline gap-1.5">
                       <span className="text-2xl font-black text-white">{completedTasksCount}</span>
-                      <span className="text-xs text-slate-500">/ {totalTasksLimit} Ads</span>
+                      <span className="text-xs text-slate-500">/ {totalTasksLimit} Tasks</span>
                     </div>
                     {/* Progress Bar */}
                     <div className="w-full h-1.5 bg-zinc-800 rounded-full mt-3 overflow-hidden">
@@ -2075,8 +2162,8 @@ export default function UserDashboard({
                   {/* Card 4: Daily Limit */}
                   <div className={`p-5 rounded-3xl border ${isDark ? 'bg-zinc-900 border-zinc-855' : 'bg-white border-slate-200'}`}>
                     <span className="block text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-2">Your Task Limit</span>
-                    <span className="text-2xl font-black text-indigo-400">{totalTasksLimit} Ads/Day</span>
-                    <p className="text-[10px] text-slate-500 mt-1">Determined by purchased plans</p>
+                    <span className="text-2xl font-black text-indigo-400">{totalTasksLimit} Tasks/Day</span>
+                    <p className="text-[10px] text-slate-500 mt-1">5 tasks per active portfolio</p>
                   </div>
                 </div>
 
@@ -2105,12 +2192,12 @@ export default function UserDashboard({
                     <h4 className="text-xs font-black text-slate-450 uppercase tracking-widest">Available Tasks List</h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                       {adsToDisplay.map((ad: any, index: number) => {
-                        const isCompleted = isAdCompletedToday(ad.id);
+                        const isCompleted = isAdCompletedToday(ad.uniqueTaskId);
                         const isLimitReached = completedTasksCount >= totalTasksLimit;
                         
                         return (
                           <div 
-                            key={ad.id || index} 
+                            key={ad.uniqueTaskId || index} 
                             className={`p-5 rounded-3xl border flex flex-col justify-between transition-all ${
                               isCompleted 
                                 ? 'bg-zinc-950/40 border-zinc-900 opacity-60' 
@@ -2127,12 +2214,13 @@ export default function UserDashboard({
                                     ✓ Completed Today
                                   </span>
                                 ) : (
-                                  <span className="bg-amber-400/10 text-amber-400 text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border border-amber-400/15">
-                                    ৳{ad.reward || 10} BDT
+                                  <span className="bg-amber-400/10 text-amber-400 text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border border-amber-400/15 font-bold">
+                                    ৳{ad.reward} BDT
                                   </span>
                                 )}
                               </div>
                               <h5 className="font-bold text-xs text-white line-clamp-1">{ad.title}</h5>
+                              <p className="text-[10px] text-amber-500 font-semibold mt-0.5">Plan: {ad.planName}</p>
                               <p className="text-[10px] text-slate-500 mt-1">Duration: {ad.duration || 10} Seconds</p>
                             </div>
 
