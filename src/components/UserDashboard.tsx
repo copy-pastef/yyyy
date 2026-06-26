@@ -59,7 +59,8 @@ import {
   Plus, 
   Flame,
   Shield,
-  Tv
+  Tv,
+  Megaphone
 } from 'lucide-react';
 
 interface UserDashboardProps {
@@ -583,6 +584,14 @@ export default function UserDashboard({
 
   // Buy Investment Plan Handler
   const handlePurchasePlan = async (plan: InvestmentPlan) => {
+    if (plan.cost === 0 || plan.id === 'plan_free' || plan.name.toLowerCase().includes('free')) {
+      const alreadyHasFree = myInvestments.some(i => i.planId === plan.id || i.cost === 0 || i.planName.toLowerCase().includes('free'));
+      if (alreadyHasFree) {
+        alert("⚠️ You have already subscribed to the Free Mplan! Each account is allowed only 1 Free Mplan subscription. Please upgrade to a paid premium plan to unlock more daily tasks and bigger cash bonuses.");
+        return;
+      }
+    }
+
     if (profile.walletBalance < plan.cost) {
       alert(`⚠️ Insufficient wallet balance to purchase this plan. Current Balance: ৳${profile.walletBalance}, Plan Cost: ৳${plan.cost}. Please deposit money first.`);
       setActiveTab('deposit');
@@ -597,6 +606,14 @@ export default function UserDashboard({
     try {
       const now = Date.now();
       const expiresAt = now + (plan.durationDays * 24 * 60 * 60 * 1000);
+
+      if (plan.cost === 0 || plan.id === 'plan_free' || plan.name.toLowerCase().includes('free')) {
+        const alreadyHasFree = myInvestments.some(i => i.planId === plan.id || i.cost === 0 || i.planName.toLowerCase().includes('free'));
+        if (alreadyHasFree) {
+          alert("⚠️ You can only subscribe to the Free Mplan once per account!");
+          return;
+        }
+      }
 
       // 1. Create User Investment
       const defaultTasks = [
@@ -669,8 +686,8 @@ export default function UserDashboard({
     setDepositSuccessAlert('');
     
     const amount = Number(depositAmount);
-    if (!amount || amount < 100) {
-      alert("Minimum deposit amount is ৳100.");
+    if (!amount || amount < 500 || amount > 20000) {
+      alert("Deposit amount must be between ৳500 and ৳20000 BDT.");
       return;
     }
 
@@ -719,8 +736,8 @@ export default function UserDashboard({
     setWithdrawSuccessAlert('');
 
     const amount = Number(withdrawAmount);
-    if (!amount || amount < 50) {
-      setWithdrawErrorAlert("Minimum withdrawal amount is ৳50 BDT.");
+    if (!amount || amount < 200 || amount > 20000) {
+      setWithdrawErrorAlert("Withdrawal amount must be between ৳200 and ৳20000 BDT.");
       return;
     }
 
@@ -1185,6 +1202,19 @@ export default function UserDashboard({
                 </button>
               </div>
 
+              {/* Official Notice Board */}
+              {systemSettings.notices && (
+                <div className={`p-5 rounded-3xl border ${isDark ? 'bg-amber-500/5 border-amber-500/15 text-amber-200' : 'bg-amber-50 border-amber-200 text-amber-900'} relative overflow-hidden flex flex-col md:flex-row items-start md:items-center gap-4 shadow-md`}>
+                  <div className="p-3 bg-amber-500/10 text-amber-400 rounded-2xl shrink-0 flex items-center justify-center">
+                    <Megaphone className="w-5 h-5 animate-pulse" />
+                  </div>
+                  <div className="flex-1 space-y-1">
+                    <h4 className="text-xs font-black uppercase tracking-widest text-amber-400">Official Notice Board Announcement</h4>
+                    <p className="text-xs leading-relaxed opacity-90">{systemSettings.notices}</p>
+                  </div>
+                </div>
+              )}
+
               {/* Wallet & Stats grid */}
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 
@@ -1386,6 +1416,9 @@ export default function UserDashboard({
                       }`}
                       required
                     />
+                    <div className="flex justify-between items-center mt-1">
+                      <span className="text-[10px] text-slate-500">Min. Deposit: ৳500 | Max: ৳20,000</span>
+                    </div>
                   </div>
 
                   <div>
@@ -1568,7 +1601,7 @@ export default function UserDashboard({
                       required
                     />
                     <div className="flex justify-between items-center mt-1">
-                      <span className="text-[10px] text-slate-500">Min. Withdraw: ৳50</span>
+                      <span className="text-[10px] text-slate-500">Min. Withdraw: ৳200 | Max: ৳20,000</span>
                       <span className="text-[10px] text-slate-400">Available: <strong className="text-emerald-400">৳{profile.walletBalance}</strong></span>
                     </div>
                   </div>
@@ -1591,7 +1624,7 @@ export default function UserDashboard({
                   <button
                     id="btn-withdraw-submit"
                     type="submit"
-                    disabled={withdrawLoading || profile.walletBalance < 50}
+                    disabled={withdrawLoading || profile.walletBalance < 200}
                     className="w-full bg-emerald-600 hover:bg-emerald-500 py-3 rounded-2xl text-xs font-bold uppercase tracking-widest text-white mt-4 transition-all disabled:opacity-50"
                   >
                     {withdrawLoading ? 'Authorizing Withdrawal...' : 'Request Cashout'}

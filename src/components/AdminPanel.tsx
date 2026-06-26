@@ -697,6 +697,45 @@ export default function AdminPanel({
     );
   };
 
+  // Delete user permanently and ban them
+  const handleDeleteUser = (user: UserProfile) => {
+    if (user.uid === adminProfile.uid) {
+      showAdminAlert("ERROR", "You cannot delete your own active administrator account.", "error");
+      return;
+    }
+    if (user.role === 'admin' && user.email?.toLowerCase() === 'admin@smartdeposit.com') {
+      showAdminAlert("ERROR", "You cannot delete the master platform administrator.", "error");
+      return;
+    }
+    showAdminConfirm(
+      "PERMANENTLY DELETE ACCOUNT",
+      `⚠️ WARNING: Are you sure you want to permanently delete and ban the account of ${user.fullName} (${user.email})? This user will be immediately logged out, their account will be removed, and they will be blocked from ever logging in or registering again. This action is IRREVERSIBLE!`,
+      async () => {
+        try {
+          // 1. Write user info to deleted_users to permanently ban them
+          await setDoc(doc(db, 'deleted_users', user.uid), {
+            uid: user.uid,
+            email: user.email,
+            fullName: user.fullName,
+            phone: user.phone || '',
+            deletedAt: Date.now()
+          });
+
+          // 2. Delete user's profile document from the users collection
+          await deleteDoc(doc(db, 'users', user.uid));
+
+          showAdminAlert("ACCOUNT DELETED", `The account belonging to ${user.fullName} was permanently deleted and banned.`, "success");
+          
+          if (selectedUser?.uid === user.uid) {
+            setSelectedUser(null);
+          }
+        } catch (err: any) {
+          showAdminAlert("ERROR", "Failed to delete user: " + err.message, "error");
+        }
+      }
+    );
+  };
+
   // Create customized investment plans
   const handleCreatePlan = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -710,16 +749,38 @@ export default function AdminPanel({
       const planCost = Number(newPlanCost);
       const planBonus = Number(newPlanBonus);
       const planDays = Number(newPlanDays);
-      const planTasks = newPlanTasks ? Number(newPlanTasks) : 5;
+      const planTasks = planCost === 0 ? 1 : Math.max(1, Math.round((planCost / 1000) * 5));
 
-      // Map and parse the 5 custom tasks
-      const parsedTasks = createPlanTasks.map((t, idx) => ({
-        id: `task_${idx + 1}`,
-        title: t.title.trim() || `Task ${idx + 1}`,
-        adLink: t.adLink.trim() || 'https://www.youtube.com/embed/dQw4w9WgXcQ',
-        duration: 10,
-        reward: Number(t.reward) || 0
-      }));
+      const adLinks = [
+        'https://www.youtube.com/embed/dQw4w9WgXcQ',
+        'https://www.google.com',
+        'https://www.wikipedia.org',
+        'https://www.github.com',
+        'https://www.amazon.com',
+        'https://www.microsoft.com',
+        'https://www.apple.com'
+      ];
+      const titles = [
+        'Watch Sponsor Video',
+        'Visit Partner Website',
+        'Learn Investment Rules',
+        'Explore Sponsor Platform',
+        'Complete Premium Offer',
+        'Review Tech Partnership',
+        'Explore Financial Index'
+      ];
+
+      // Dynamically generate tasks according to 5 tasks per 1000 taka (10 Taka reward each)
+      const parsedTasks = [];
+      for (let i = 0; i < planTasks; i++) {
+        parsedTasks.push({
+          id: `task_${i + 1}`,
+          title: `Task ${i + 1}: ${titles[i % titles.length]}`,
+          adLink: adLinks[i % adLinks.length],
+          duration: 10,
+          reward: 10
+        });
+      }
 
       await setDoc(doc(db, 'investment_plans', planCode), {
         id: planCode,
@@ -746,7 +807,7 @@ export default function AdminPanel({
         { title: 'Task 4: Explore Sponsor Platform', adLink: 'https://www.github.com', reward: '2' },
         { title: 'Task 5: Complete Premium Offer', adLink: 'https://www.amazon.com', reward: '2' }
       ]);
-      showAdminAlert("PLAN CREATED", `Investment portfolio plan "${newPlanName}" with 5 custom tasks successfully registered inside the platform!`, "success");
+      showAdminAlert("PLAN CREATED", `Investment portfolio plan "${newPlanName}" with ${planTasks} auto-generated tasks (10 BDT each) successfully registered!`, "success");
     } catch (err: any) {
       showAdminAlert("ERROR", "Error saving custom plan: " + err.message, "error");
     }
@@ -1272,6 +1333,13 @@ export default function AdminPanel({
                               >
                                 Edit Bal / Role
                               </button>
+                              <button 
+                                id={`delete-user-btn-${user.uid}`}
+                                onClick={() => handleDeleteUser(user)}
+                                className="px-2.5 py-1.2 rounded-lg bg-rose-500/10 text-rose-500 border border-rose-500/20 hover:bg-rose-600 hover:text-white text-[10px] font-bold uppercase tracking-wider transition-all"
+                              >
+                                Delete
+                              </button>
                             </td>
                           </tr>
                         ))
@@ -1331,6 +1399,14 @@ export default function AdminPanel({
                       className="py-2 px-3 rounded-xl bg-zinc-800 border border-zinc-700 hover:bg-zinc-705 font-bold uppercase text-[10px] tracking-widest text-center transition-all text-white"
                     >
                       {selectedUser.role === 'admin' ? 'Remove Admin Role' : 'Make Administrator'}
+                    </button>
+
+                    <button
+                      id="btn-delete-user"
+                      onClick={() => handleDeleteUser(selectedUser)}
+                      className="py-2 px-3 rounded-xl bg-red-600/10 text-red-500 border border-red-500/20 hover:bg-red-600 hover:text-white font-bold uppercase text-[10px] tracking-widest text-center transition-all"
+                    >
+                      Delete Account Permanently
                     </button>
                   </div>
                 </div>
@@ -1685,7 +1761,17 @@ export default function AdminPanel({
                         id="plan-f-cost"
                         type="number"
                         value={newPlanCost}
-                        onChange={(e) => setNewPlanCost(e.target.value)}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setNewPlanCost(val);
+                          const costNum = Number(val);
+                          if (!isNaN(costNum) && costNum >= 0) {
+                            const calculatedTasks = costNum === 0 ? 1 : Math.max(1, Math.round((costNum / 1000) * 5));
+                            const calculatedBonus = costNum === 0 ? 10 : calculatedTasks * 10;
+                            setNewPlanBonus(calculatedBonus.toString());
+                            setNewPlanTasks(calculatedTasks.toString());
+                          }
+                        }}
                         placeholder="1000"
                         className="block w-full px-3 py-2 text-xs rounded-xl bg-zinc-800 border border-zinc-700 text-white outline-none"
                         required

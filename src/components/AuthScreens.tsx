@@ -77,6 +77,15 @@ export default function AuthScreens({ onAuthSuccess, primaryColor, theme }: Auth
 
     setLoading(true);
     try {
+      // Check if email has been banned/deleted
+      const deletedQuery = query(collection(db, 'deleted_users'), where('email', '==', email.trim().toLowerCase()));
+      const deletedSnap = await getDocs(deletedQuery);
+      if (!deletedSnap.empty) {
+        setError('This email address has been permanently deleted/banned by the administrator.');
+        setLoading(false);
+        return;
+      }
+
       // 1. Create in Firebase Auth first (user becomes authenticated so we can query database safely)
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const uid = userCredential.user.uid;
@@ -184,6 +193,18 @@ export default function AuthScreens({ onAuthSuccess, primaryColor, theme }: Auth
       const user = result.user;
       const uid = user.uid;
 
+      // Check if user is banned/deleted
+      const deletedDocSnap = await getDoc(doc(db, 'deleted_users', uid));
+      const deletedQuery = query(collection(db, 'deleted_users'), where('email', '==', (user.email || '').toLowerCase()));
+      const deletedQuerySnap = await getDocs(deletedQuery);
+
+      if (deletedDocSnap.exists() || !deletedQuerySnap.empty) {
+        setError('This account has been permanently deleted by the administrator.');
+        await auth.signOut();
+        setLoading(false);
+        return;
+      }
+
       // Check if profile document already exists
       const docRef = doc(db, 'users', uid);
       const docSnap = await getDoc(docRef);
@@ -272,6 +293,18 @@ export default function AuthScreens({ onAuthSuccess, primaryColor, theme }: Auth
     try {
       const userCredential = await signInWithEmailAndPassword(auth, loginEmail, loginPassword);
       const uid = userCredential.user.uid;
+
+      // Check if user is banned/deleted
+      const deletedDocSnap = await getDoc(doc(db, 'deleted_users', uid));
+      const deletedQuery = query(collection(db, 'deleted_users'), where('email', '==', loginEmail.trim().toLowerCase()));
+      const deletedQuerySnap = await getDocs(deletedQuery);
+
+      if (deletedDocSnap.exists() || !deletedQuerySnap.empty) {
+        setError('This account has been permanently deleted by the administrator.');
+        await auth.signOut();
+        setLoading(false);
+        return;
+      }
 
       // Retrieve Profile
       const docRef = doc(db, 'users', uid);

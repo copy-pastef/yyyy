@@ -112,5 +112,11 @@ service cloud.firestore {
         allow update, delete: if isAdmin();
       }
     }
+
+    // Collection: Deleted Users (for ban check on registration/login)
+    match /deleted_users/{deletedId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
   }
 }

@@ -32,7 +32,7 @@ export default function App() {
 
     const defaultFallbackSettings: SystemSettings = {
       id: "config",
-      platformName: "Smart Deposit Platform",
+      platformName: "Earn Cash - Smart Deposit",
       defaultCurrency: "BDT",
       referralType: "percentage",
       referralValue: 20,
@@ -96,7 +96,7 @@ export default function App() {
         setUser(currentUser);
         
         // Listen to User Profile real-time
-        unsubProfile = onSnapshot(doc(db, 'users', currentUser.uid), (snap) => {
+        unsubProfile = onSnapshot(doc(db, 'users', currentUser.uid), async (snap) => {
           if (snap.exists()) {
             const pData = snap.data() as UserProfile;
             setProfile(pData);
@@ -105,8 +105,23 @@ export default function App() {
             if (pData.role === 'admin') {
               setIsAdminView(true);
             }
+            setLoading(false);
+          } else {
+            // Check if user has been permanently deleted
+            try {
+              const deletedSnap = await getDoc(doc(db, 'deleted_users', currentUser.uid));
+              if (deletedSnap.exists()) {
+                setProfile(null);
+                setUser(null);
+                setIsAdminView(false);
+                await signOut(auth);
+                alert("Your account has been permanently deleted or deactivated by the administrator.");
+              }
+            } catch (err) {
+              console.error("Error checking deleted user status:", err);
+            }
+            setLoading(false);
           }
-          setLoading(false);
         }, (err) => {
           console.error("Profile listen error:", err);
           setLoading(false);
