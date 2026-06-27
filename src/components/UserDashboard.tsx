@@ -747,7 +747,7 @@ export default function UserDashboard({
     }
 
     if (!withdrawTarget.trim()) {
-      setWithdrawErrorAlert("Please enter your designated bKash/Nagad/Rocket account mobile number.");
+      setWithdrawErrorAlert("Please enter your designated bKash/Nagad account mobile number.");
       return;
     }
 
@@ -936,7 +936,7 @@ export default function UserDashboard({
             <Wallet className="w-6 h-6 animate-pulse" />
           </div>
           <div>
-            <h1 className="font-bold text-sm tracking-tight">Smart Deposit</h1>
+            <h1 className="font-bold text-sm tracking-tight">Earn Cash</h1>
             <p className="text-[10px] text-emerald-400 font-semibold tracking-wider uppercase">User Portal</p>
           </div>
         </div>
@@ -1372,7 +1372,7 @@ export default function UserDashboard({
               {/* Deposit submission form */}
               <div className={`p-6 rounded-3xl border ${isDark ? 'bg-zinc-900 border-zinc-850' : 'bg-white border-slate-200'}`}>
                 <h3 className="text-md font-bold mb-1">Make Deposit Request</h3>
-                <p className="text-xs text-slate-400 mb-6">Enter details of manual mobile cash transfers to request wallet balance sync.</p>
+                <p className="text-xs text-slate-400 mb-6">Send Money is acceptable. Please send money first and then submit details. (শুধুমাত্র সেন্ড মানি গ্রহণযোগ্য। টাকা পাঠিয়ে নিচের তথ্য পূরণ করুন।)</p>
 
                 {depositSuccessAlert && (
                   <div className="mb-4 p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl text-emerald-400 text-xs font-semibold leading-relaxed">
@@ -1384,8 +1384,8 @@ export default function UserDashboard({
                   
                   <div>
                     <label className="block text-xs font-semibold text-slate-400 uppercase tracking-widest mb-1.5">Payment Gateway</label>
-                    <div className="grid grid-cols-3 gap-3">
-                      {(['bKash', 'Nagad', 'Rocket'] as const).map((method) => (
+                    <div className="grid grid-cols-2 gap-3">
+                      {(['bKash', 'Nagad'] as const).map((method) => (
                         <button
                           key={method}
                           type="button"
@@ -1436,27 +1436,7 @@ export default function UserDashboard({
                     />
                   </div>
 
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-400 uppercase tracking-widest mb-1.5">Upload Transaction Receipt / Screenshot</label>
-                    <div className="border border-dashed border-zinc-850 p-4 rounded-2xl text-center space-y-3">
-                      <p className="text-[10px] text-slate-500">Provide an image or copy transaction receipt details here.</p>
-                      
-                      {depositProof ? (
-                        <div className="flex items-center justify-center gap-2 text-xs text-emerald-400 font-bold bg-emerald-500/5 py-1.5 rounded-xl border border-emerald-500/10">
-                          <Check className="w-4 h-4" /> Proof uploaded successfully.
-                        </div>
-                      ) : (
-                        <button
-                          type="button"
-                          id="btn-upload-receipt-mock"
-                          onClick={uploadDemoSlipMock}
-                          className="px-3 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-705 text-white font-bold text-[10px] uppercase tracking-wider transition-all"
-                        >
-                          Generate Sample Screenshot
-                        </button>
-                      )}
-                    </div>
-                  </div>
+
 
                   <button
                     id="btn-deposit-submit"
@@ -1479,24 +1459,16 @@ export default function UserDashboard({
                   <div className="space-y-4">
                     <div className="flex justify-between items-center border-b border-zinc-800/40 pb-3">
                       <div>
-                        <p className="text-xs font-extrabold text-white">bKash (Manual Cash Out)</p>
+                        <p className="text-xs font-extrabold text-white">bKash (Send Money)</p>
                         <p className="text-[11px] text-slate-400 mt-0.5">{systemSettings.bkashNumber || "017XXXXXXXX"}</p>
-                      </div>
-                      <span className="text-[10px] font-bold bg-emerald-500/15 text-emerald-400 px-2 py-0.5 rounded">Active</span>
-                    </div>
-
-                    <div className="flex justify-between items-center border-b border-zinc-800/40 pb-3">
-                      <div>
-                        <p className="text-xs font-extrabold text-white">Nagad (Manual Cash Out)</p>
-                        <p className="text-[11px] text-slate-400 mt-0.5">{systemSettings.nagadNumber || "019XXXXXXXX"}</p>
                       </div>
                       <span className="text-[10px] font-bold bg-emerald-500/15 text-emerald-400 px-2 py-0.5 rounded">Active</span>
                     </div>
 
                     <div className="flex justify-between items-center pb-1">
                       <div>
-                        <p className="text-xs font-extrabold text-white">Rocket (Manual Cash Out)</p>
-                        <p className="text-[11px] text-slate-400 mt-0.5">{systemSettings.rocketNumber || "015XXXXXXXX"}</p>
+                        <p className="text-xs font-extrabold text-white">Nagad (Send Money)</p>
+                        <p className="text-[11px] text-slate-400 mt-0.5">{systemSettings.nagadNumber || "019XXXXXXXX"}</p>
                       </div>
                       <span className="text-[10px] font-bold bg-emerald-500/15 text-emerald-400 px-2 py-0.5 rounded">Active</span>
                     </div>
@@ -1568,8 +1540,8 @@ export default function UserDashboard({
                   
                   <div>
                     <label className="block text-xs font-semibold text-slate-400 uppercase tracking-widest mb-1.5">Receiving Gateway</label>
-                    <div className="grid grid-cols-3 gap-3">
-                      {(['bKash', 'Nagad', 'Rocket'] as const).map((method) => (
+                    <div className="grid grid-cols-2 gap-3">
+                      {(['bKash', 'Nagad'] as const).map((method) => (
                         <button
                           key={method}
                           type="button"

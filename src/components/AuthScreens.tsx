@@ -146,7 +146,7 @@ export default function AuthScreens({ onAuthSuccess, primaryColor, theme }: Auth
         await setDoc(doc(db, 'notifications', `${uid}_welcome`), {
           id: `${uid}_welcome`,
           uid,
-          title: 'Welcome to Smart Deposit Platform!',
+          title: 'Welcome to Earn Cash Platform!',
           message: `Hello ${fullName}, your account was successfully created! Verify your phone and email to maximize security and participate in support.`,
           read: false,
           createdAt: Date.now()
@@ -258,7 +258,7 @@ export default function AuthScreens({ onAuthSuccess, primaryColor, theme }: Auth
         await setDoc(doc(db, 'notifications', `${uid}_welcome`), {
           id: `${uid}_welcome`,
           uid,
-          title: 'Welcome to Smart Deposit Platform!',
+          title: 'Welcome to Earn Cash Platform!',
           message: `Hello ${newProfile.fullName}, your account was successfully created via Google login! Go to the profile tab to configure/verify your mobile phone.`,
           read: false,
           createdAt: Date.now()
@@ -386,11 +386,8 @@ export default function AuthScreens({ onAuthSuccess, primaryColor, theme }: Auth
           <Shield id="logo-icon animate-pulse" className="w-8 h-8" />
         </div>
         <h2 className="text-3xl font-bold tracking-tight">
-          Smart Deposit
+          Earn Cash
         </h2>
-        <p className="mt-2 text-sm text-emerald-500 font-medium">
-          Premium Investment & Referral Ecosystem
-        </p>
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
@@ -481,9 +478,6 @@ export default function AuthScreens({ onAuthSuccess, primaryColor, theme }: Auth
                     required
                   />
                 </div>
-                <p className="mt-1 text-[11px] text-slate-500">
-                  Tip: Use <strong className="text-emerald-500">admin@smartdeposit.com</strong> to try the Admin experience.
-                </p>
               </div>
 
               <button

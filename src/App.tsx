@@ -32,7 +32,7 @@ export default function App() {
 
     const defaultFallbackSettings: SystemSettings = {
       id: "config",
-      platformName: "Earn Cash - Smart Deposit",
+      platformName: "Earn Cash",
       defaultCurrency: "BDT",
       referralType: "percentage",
       referralValue: 20,
@@ -154,7 +154,7 @@ export default function App() {
     return (
       <div className="min-h-screen flex flex-col justify-center items-center bg-zinc-950 text-white gap-3">
         <RefreshCw className="w-8 h-8 text-emerald-500 animate-spin" />
-        <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">Hydrating Smart Deposit Vault...</p>
+        <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">Hydrating Earn Cash Vault...</p>
       </div>
     );
   }

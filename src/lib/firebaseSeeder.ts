@@ -34,7 +34,7 @@ export async function seedInitialData() {
     if (!configDocSnap.exists()) {
       const defaultSettings: SystemSettings = {
         id: "config",
-        platformName: "Earn Cash - Smart Deposit",
+        platformName: "Earn Cash",
         defaultCurrency: "BDT",
         referralType: "percentage",
         referralValue: 20, // 20%
@@ -54,9 +54,9 @@ export async function seedInitialData() {
     } else {
       const currentSettings = configDocSnap.data() as SystemSettings;
       // Force update default platform name to Earn Cash
-      if (currentSettings.platformName === "Smart Deposit Platform") {
+      if (currentSettings.platformName === "Smart Deposit Platform" || currentSettings.platformName === "Earn Cash - Smart Deposit") {
         await updateDoc(configDocRef, {
-          platformName: "Earn Cash - Smart Deposit"
+          platformName: "Earn Cash"
         });
       }
       // Ensure adTasks is seeded on existing settings
