@@ -269,7 +269,26 @@ export default function AuthScreens({ onAuthSuccess, primaryColor, theme }: Auth
       }
     } catch (err: any) {
       console.error(err);
-      if (err.message && err.message.includes('auth/operation-not-allowed')) {
+      const errStr = String(err.message || err.code || err);
+      if (err.code === 'auth/popup-blocked' || errStr.includes('popup-blocked')) {
+        setError(
+          '⚠️ Pop-up Blocked!\n\n' +
+          'English:\n' +
+          'The browser blocked the Google Sign-In pop-up because the app is running inside a preview frame.\n' +
+          'To fix this:\n' +
+          '1. Click the "Open in new tab" icon (external link button) in the top-right corner of the preview area to launch the app in a standalone tab, then sign in.\n' +
+          '2. Or, allow pop-ups for this site in your browser settings.\n' +
+          '3. Or, simply use the Email & Password form to log in or register.\n\n' +
+          'বাংলা:\n' +
+          'ব্রাউজার গুগল সাইন-ইন পপ-আপ ব্লক করেছে কারণ অ্যাপটি প্রিভিউ ফ্রেমের ভেতরে রান করছে।\n' +
+          'সমাধান:\n' +
+          '১. স্ক্রিনের উপরে ডানদিকের কোনায় থাকা "Open in new tab" আইকনে ক্লিক করে অ্যাপটি আলাদা ট্যাবে ওপেন করে গুগল সাইন-ইন করুন।\n' +
+          '২. অথবা আপনার ব্রাউজার সেটিংসে গিয়ে এই সাইটের জন্য পপ-আপ এলাউ করুন।\n' +
+          '৩. অথবা সরাসরি ইমেইল এবং পাসওয়ার্ড ব্যবহার করে রেজিস্টার বা লগইন করুন।'
+        );
+      } else if (err.code === 'auth/popup-closed-by-user' || errStr.includes('popup-closed-by-user')) {
+        setError('⚠️ Sign-In Pop-up was closed before completion. Please try again. (গুগল পপ-আপ উইন্ডোটি বন্ধ হয়ে গেছে, দয়া করে আবার চেষ্টা করুন।)');
+      } else if (errStr.includes('auth/operation-not-allowed') || errStr.includes('operation-not-allowed')) {
         setError('Google Sign-In is not fully authorized yet on Firebase. Please follow the instructions to enable Google provider in Firebase console, or use Email/Password.');
       } else {
         setError(err.message || 'Error occurred during Google sign-in.');
@@ -421,7 +440,7 @@ export default function AuthScreens({ onAuthSuccess, primaryColor, theme }: Auth
 
           {/* Feedback messages */}
           {error && (
-            <div id="error-alert" className="mb-4 p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs font-medium">
+            <div id="error-alert" className="mb-4 p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs font-medium whitespace-pre-line">
               {error}
             </div>
           )}
