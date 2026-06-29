@@ -836,7 +836,8 @@ export default function UserDashboard({
     if (!activeTicket || !replyText.trim()) return;
 
     try {
-      const now = Date.now();
+      const lastMsg = ticketMessages[ticketMessages.length - 1];
+      const now = Math.max(Date.now(), lastMsg ? lastMsg.createdAt + 1000 : Date.now());
       await addDoc(collection(db, `support_tickets/${activeTicket.id}/messages`), {
         ticketId: activeTicket.id,
         senderUid: profile.uid,
