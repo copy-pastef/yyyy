@@ -928,16 +928,16 @@ export default function UserDashboard({
   const unreadNotifs = notifications.filter(n => !n.read).length;
 
   return (
-    <div className={`min-h-screen pb-24 lg:pb-0 font-sans flex flex-col md:flex-row transition-colors duration-300 ${isDark ? 'bg-zinc-950 text-white' : 'bg-slate-50 text-slate-900'}`}>
+    <div className={`min-h-screen pb-12 font-sans flex flex-col md:flex-row transition-colors duration-300 ${isDark ? 'bg-zinc-950 text-white' : 'bg-slate-50 text-slate-900'}`}>
       
-      {/* 1. SIDE NAVIGATION BAR (FOR DESKTOP) */}
-      <aside className={`hidden md:flex flex-col w-64 border-r transition-all duration-300 ${isDark ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-slate-200'}`}>
+      {/* 1. SIDE NAVIGATION BAR */}
+      <aside className={`w-full md:w-64 border-b md:border-b-0 md:border-r flex flex-col transition-all duration-300 ${isDark ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-slate-200'}`}>
         <div className="p-6 border-b border-zinc-800/40 flex items-center gap-3">
           <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-500">
             <Wallet className="w-6 h-6 animate-pulse" />
           </div>
           <div>
-            <h1 className="font-bold text-sm tracking-tight">Earn Cash</h1>
+            <h1 className="font-bold text-sm tracking-tight">Cash Taka</h1>
             <p className="text-[10px] text-emerald-400 font-semibold tracking-wider uppercase">User Portal</p>
           </div>
         </div>
@@ -2123,7 +2123,7 @@ export default function UserDashboard({
                       Daily Ads Tasks Portal
                     </h3>
                     <p className="text-xs text-slate-400 mt-1">
-                      Complete tasks assigned to your active investment plans to instantly earn cash rewards set by admin.
+                      Complete tasks assigned to your active investment plans to instantly earn Cash Taka rewards set by admin.
                     </p>
                   </div>
                   {activeInvestments.length > 0 && (
@@ -2308,77 +2308,6 @@ export default function UserDashboard({
           )}
 
         </div>
-
-        {/* 3. MOBILE RESPONSIVE BOTTOM NAVIGATION BAR */}
-        <nav className={`md:hidden fixed bottom-0 left-0 right-0 border-t py-2 px-4 flex justify-around z-55 transition-all ${
-          isDark ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-slate-200'
-        }`}>
-          <button 
-            id="mobile-nav-db"
-            onClick={() => setActiveTab('dashboard')} 
-            className={`flex flex-col items-center gap-1 text-[9px] font-black uppercase tracking-wider ${
-              activeTab === 'dashboard' ? 'text-emerald-400' : 'text-slate-400'
-            }`}
-          >
-            <Compass className="w-4 h-4" />
-            <span>Home</span>
-          </button>
-
-          <button 
-            id="mobile-nav-tasks"
-            onClick={() => setActiveTab('tasks')} 
-            className={`flex flex-col items-center gap-1 text-[9px] font-black uppercase tracking-wider ${
-              activeTab === 'tasks' ? 'text-emerald-400' : 'text-slate-400'
-            }`}
-          >
-            <Tv className="w-4 h-4 text-amber-400" />
-            <span>Tasks</span>
-          </button>
-          
-          <button 
-            id="mobile-nav-dep"
-            onClick={() => setActiveTab('deposit')} 
-            className={`flex flex-col items-center gap-1 text-[9px] font-black uppercase tracking-wider ${
-              activeTab === 'deposit' ? 'text-emerald-400' : 'text-slate-400'
-            }`}
-          >
-            <ArrowUpRight className="w-4 h-4" />
-            <span>Deposit</span>
-          </button>
-
-          <button 
-            id="mobile-nav-with"
-            onClick={() => setActiveTab('withdraw')} 
-            className={`flex flex-col items-center gap-1 text-[9px] font-black uppercase tracking-wider ${
-              activeTab === 'withdraw' ? 'text-emerald-400' : 'text-slate-400'
-            }`}
-          >
-            <ArrowDownLeft className="w-4 h-4" />
-            <span>Withdraw</span>
-          </button>
-
-          <button 
-            id="mobile-nav-refer"
-            onClick={() => setActiveTab('referrals')} 
-            className={`flex flex-col items-center gap-1 text-[9px] font-black uppercase tracking-wider ${
-              activeTab === 'referrals' ? 'text-emerald-400' : 'text-slate-400'
-            }`}
-          >
-            <Users className="w-4 h-4" />
-            <span>Ref</span>
-          </button>
-
-          <button 
-            id="mobile-nav-ticket"
-            onClick={() => setActiveTab('tickets')} 
-            className={`flex flex-col items-center gap-1 text-[9px] font-black uppercase tracking-wider ${
-              activeTab === 'tickets' ? 'text-emerald-400' : 'text-slate-400'
-            }`}
-          >
-            <MessageSquare className="w-4 h-4" />
-            <span>Support</span>
-          </button>
-        </nav>
 
       </main>
 

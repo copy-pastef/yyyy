@@ -146,7 +146,7 @@ export default function AuthScreens({ onAuthSuccess, primaryColor, theme }: Auth
         await setDoc(doc(db, 'notifications', `${uid}_welcome`), {
           id: `${uid}_welcome`,
           uid,
-          title: 'Welcome to Earn Cash Platform!',
+          title: 'Welcome to Cash Taka Platform!',
           message: `Hello ${fullName}, your account was successfully created! Verify your phone and email to maximize security and participate in support.`,
           read: false,
           createdAt: Date.now()
@@ -258,7 +258,7 @@ export default function AuthScreens({ onAuthSuccess, primaryColor, theme }: Auth
         await setDoc(doc(db, 'notifications', `${uid}_welcome`), {
           id: `${uid}_welcome`,
           uid,
-          title: 'Welcome to Earn Cash Platform!',
+          title: 'Welcome to Cash Taka Platform!',
           message: `Hello ${newProfile.fullName}, your account was successfully created via Google login! Go to the profile tab to configure/verify your mobile phone.`,
           read: false,
           createdAt: Date.now()
@@ -405,7 +405,7 @@ export default function AuthScreens({ onAuthSuccess, primaryColor, theme }: Auth
           <Shield id="logo-icon animate-pulse" className="w-8 h-8" />
         </div>
         <h2 className="text-3xl font-bold tracking-tight">
-          Earn Cash
+          Cash Taka
         </h2>
       </div>
 

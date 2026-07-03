@@ -34,7 +34,7 @@ export async function seedInitialData() {
     if (!configDocSnap.exists()) {
       const defaultSettings: SystemSettings = {
         id: "config",
-        platformName: "Earn Cash",
+        platformName: "Cash Taka",
         defaultCurrency: "BDT",
         referralType: "percentage",
         referralValue: 20, // 20%
@@ -53,10 +53,10 @@ export async function seedInitialData() {
       console.log("Firebase initial settings seeded.");
     } else {
       const currentSettings = configDocSnap.data() as SystemSettings;
-      // Force update default platform name to Earn Cash
-      if (currentSettings.platformName === "Smart Deposit Platform" || currentSettings.platformName === "Earn Cash - Smart Deposit") {
+      // Force update default platform name to Cash Taka
+      if (currentSettings.platformName === "Smart Deposit Platform" || currentSettings.platformName === "Earn Cash - Smart Deposit" || currentSettings.platformName === "Earn Cash") {
         await updateDoc(configDocRef, {
-          platformName: "Earn Cash"
+          platformName: "Cash Taka"
         });
       }
       // Ensure adTasks is seeded on existing settings
