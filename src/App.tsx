@@ -20,7 +20,7 @@ export default function App() {
   const [settings, setSettings] = useState<SystemSettings | null>(null);
   
   const [loading, setLoading] = useState(true);
-  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
+  const [theme, setTheme] = useState<'dark' | 'light'>('light');
 
   // Toggle for Admins to view either User Panel or Admin Panel
   const [isAdminView, setIsAdminView] = useState(false);

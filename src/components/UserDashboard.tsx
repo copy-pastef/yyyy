@@ -60,7 +60,8 @@ import {
   Flame,
   Shield,
   Tv,
-  Megaphone
+  Megaphone,
+  Menu
 } from 'lucide-react';
 
 interface UserDashboardProps {
@@ -80,6 +81,7 @@ export default function UserDashboard({
 }: UserDashboardProps) {
   const [profile, setProfile] = useState<UserProfile>(initialProfile);
   const [activeTab, setActiveTab] = useState<'dashboard' | 'deposit' | 'withdraw' | 'history' | 'referrals' | 'tickets' | 'profile' | 'notifications' | 'tasks'>('dashboard');
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   
   // Real-time listener for current user profile state
   useEffect(() => {
@@ -985,28 +987,52 @@ export default function UserDashboard({
     }
   };
 
-  const isDark = theme === 'dark';
+  const isDark = false; // Forced to false for light mode user panel (white background, dark content)
   const unreadNotifs = notifications.filter(n => !n.read).length;
 
   return (
-    <div className={`min-h-screen pb-12 font-sans flex flex-col md:flex-row transition-colors duration-300 ${isDark ? 'bg-zinc-950 text-white' : 'bg-slate-50 text-slate-900'}`}>
+    <div className={`min-h-screen pb-12 font-sans flex flex-col md:flex-row transition-colors duration-300 ${isDark ? 'bg-zinc-950 text-white' : 'bg-white text-slate-900'}`}>
       
-      {/* 1. SIDE NAVIGATION BAR */}
-      <aside className={`w-full md:w-64 border-b md:border-b-0 md:border-r flex flex-col transition-all duration-300 ${isDark ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-slate-200'}`}>
-        <div className="p-6 border-b border-zinc-800/40 flex items-center gap-3">
-          <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-500">
-            <Wallet className="w-6 h-6 animate-pulse" />
+      {/* Backdrop overlay for mobile drawer */}
+      {isMobileMenuOpen && (
+        <div 
+          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm md:hidden transition-opacity duration-300"
+          onClick={() => setIsMobileMenuOpen(false)}
+        />
+      )}
+
+      {/* 1. SIDE NAVIGATION BAR (FOR DESKTOP & MOBILE DRAWER) */}
+      <aside className={`
+        fixed inset-y-0 left-0 z-50 w-72 flex flex-col border-r transition-transform duration-300 ease-in-out
+        md:relative md:translate-x-0 md:flex md:w-64 md:h-screen md:sticky md:top-0
+        ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
+        ${isDark ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-slate-200'}
+      `}>
+        <div className="p-6 border-b border-zinc-800/40 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-500">
+              <Wallet className="w-6 h-6 animate-pulse" />
+            </div>
+            <div>
+              <h1 className="font-bold text-sm tracking-tight">Cash Taka</h1>
+              <p className="text-[10px] text-emerald-400 font-semibold tracking-wider uppercase">User Portal</p>
+            </div>
           </div>
-          <div>
-            <h1 className="font-bold text-sm tracking-tight">Cash Taka</h1>
-            <p className="text-[10px] text-emerald-400 font-semibold tracking-wider uppercase">User Portal</p>
-          </div>
+          {/* Close button for mobile drawer */}
+          <button 
+            onClick={() => setIsMobileMenuOpen(false)}
+            className={`p-1.5 rounded-lg border md:hidden transition-all ${
+              isDark ? 'border-zinc-850 text-zinc-400 hover:text-white hover:bg-zinc-850' : 'border-slate-200 text-slate-500 hover:bg-slate-100'
+            }`}
+          >
+            <X className="w-4 h-4" />
+          </button>
         </div>
 
-        <div className="flex-1 px-4 py-6 space-y-1">
+        <div className="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
           <button 
             id="nav-dashboard"
-            onClick={() => setActiveTab('dashboard')}
+            onClick={() => { setActiveTab('dashboard'); setIsMobileMenuOpen(false); }}
             className={`w-full flex items-center justify-between px-3 py-2.5 text-xs font-semibold rounded-xl transition-all ${
               activeTab === 'dashboard' ? 'bg-emerald-600 text-white shadow-md' : 'text-slate-400 hover:text-white hover:bg-zinc-800/50'
             }`}
@@ -1017,7 +1043,7 @@ export default function UserDashboard({
 
           <button 
             id="nav-tasks"
-            onClick={() => setActiveTab('tasks')}
+            onClick={() => { setActiveTab('tasks'); setIsMobileMenuOpen(false); }}
             className={`w-full flex items-center justify-between px-3 py-2.5 text-xs font-semibold rounded-xl transition-all ${
               activeTab === 'tasks' ? 'bg-emerald-600 text-white shadow-md' : 'text-slate-400 hover:text-white hover:bg-zinc-800/50'
             }`}
@@ -1028,7 +1054,7 @@ export default function UserDashboard({
 
           <button 
             id="nav-deposit"
-            onClick={() => setActiveTab('deposit')}
+            onClick={() => { setActiveTab('deposit'); setIsMobileMenuOpen(false); }}
             className={`w-full flex items-center justify-between px-3 py-2.5 text-xs font-semibold rounded-xl transition-all ${
               activeTab === 'deposit' ? 'bg-emerald-600 text-white shadow-md' : 'text-slate-400 hover:text-white hover:bg-zinc-800/50'
             }`}
@@ -1039,7 +1065,7 @@ export default function UserDashboard({
 
           <button 
             id="nav-withdraw"
-            onClick={() => setActiveTab('withdraw')}
+            onClick={() => { setActiveTab('withdraw'); setIsMobileMenuOpen(false); }}
             className={`w-full flex items-center justify-between px-3 py-2.5 text-xs font-semibold rounded-xl transition-all ${
               activeTab === 'withdraw' ? 'bg-emerald-600 text-white shadow-md' : 'text-slate-400 hover:text-white hover:bg-zinc-800/50'
             }`}
@@ -1050,7 +1076,7 @@ export default function UserDashboard({
 
           <button 
             id="nav-history"
-            onClick={() => setActiveTab('history')}
+            onClick={() => { setActiveTab('history'); setIsMobileMenuOpen(false); }}
             className={`w-full flex items-center justify-between px-3 py-2.5 text-xs font-semibold rounded-xl transition-all ${
               activeTab === 'history' ? 'bg-emerald-600 text-white shadow-md' : 'text-slate-400 hover:text-white hover:bg-zinc-800/50'
             }`}
@@ -1061,7 +1087,7 @@ export default function UserDashboard({
 
           <button 
             id="nav-referrals"
-            onClick={() => setActiveTab('referrals')}
+            onClick={() => { setActiveTab('referrals'); setIsMobileMenuOpen(false); }}
             className={`w-full flex items-center justify-between px-3 py-2.5 text-xs font-semibold rounded-xl transition-all ${
               activeTab === 'referrals' ? 'bg-emerald-600 text-white shadow-md' : 'text-slate-400 hover:text-white hover:bg-zinc-800/50'
             }`}
@@ -1072,7 +1098,7 @@ export default function UserDashboard({
 
           <button 
             id="nav-tickets"
-            onClick={() => setActiveTab('tickets')}
+            onClick={() => { setActiveTab('tickets'); setIsMobileMenuOpen(false); }}
             className={`w-full flex items-center justify-between px-3 py-2.5 text-xs font-semibold rounded-xl transition-all ${
               activeTab === 'tickets' ? 'bg-emerald-600 text-white shadow-md' : 'text-slate-400 hover:text-white hover:bg-zinc-800/50'
             }`}
@@ -1083,7 +1109,7 @@ export default function UserDashboard({
 
           <button 
             id="nav-notifications"
-            onClick={() => { setActiveTab('notifications'); markAllNotifAsRead(); }}
+            onClick={() => { setActiveTab('notifications'); markAllNotifAsRead(); setIsMobileMenuOpen(false); }}
             className={`w-full flex items-center justify-between px-3 py-2.5 text-xs font-semibold rounded-xl transition-all ${
               activeTab === 'notifications' ? 'bg-emerald-600 text-white shadow-md' : 'text-slate-400 hover:text-white hover:bg-zinc-800/50'
             }`}
@@ -1102,7 +1128,7 @@ export default function UserDashboard({
 
           <button 
             id="nav-profile"
-            onClick={() => setActiveTab('profile')}
+            onClick={() => { setActiveTab('profile'); setIsMobileMenuOpen(false); }}
             className={`w-full flex items-center justify-between px-3 py-2.5 text-xs font-semibold rounded-xl transition-all ${
               activeTab === 'profile' ? 'bg-emerald-600 text-white shadow-md' : 'text-slate-400 hover:text-white hover:bg-zinc-800/50'
             }`}
@@ -1125,7 +1151,7 @@ export default function UserDashboard({
           </div>
           <button 
             id="btn-logout"
-            onClick={onLogout}
+            onClick={() => { onLogout(); setIsMobileMenuOpen(false); }}
             className="w-full flex items-center justify-center gap-2 py-2 text-xs font-bold text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 rounded-xl transition-all"
           >
             <LogOut className="w-4 h-4" /> Sign Out
@@ -1136,10 +1162,35 @@ export default function UserDashboard({
       {/* 2. CHOSEN WORKSPACE WINDOW */}
       <main className="flex-1 flex flex-col min-w-0">
         
+        {/* Mobile Sticky Top Header with 3-line hamburger menu on the left and centered "Cash Taka" text */}
+        <div className={`md:hidden flex items-center justify-between px-4 py-3 border-b sticky top-0 z-30 transition-colors ${
+          isDark ? 'bg-zinc-900 border-zinc-800 text-white' : 'bg-white border-slate-200 text-slate-900'
+        }`}>
+          {/* Left: 3-line Menu Toggle */}
+          <button
+            onClick={() => setIsMobileMenuOpen(true)}
+            className={`p-2 rounded-xl border transition-all ${
+              isDark ? 'border-zinc-850 hover:bg-zinc-800' : 'border-slate-200 hover:bg-slate-100'
+            }`}
+            aria-label="Toggle Menu"
+          >
+            <Menu className="w-5 h-5 text-emerald-500" />
+          </button>
+
+          {/* Middle: Centered Cash Taka text */}
+          <div className="flex flex-col items-center justify-center">
+            <span className="font-extrabold text-sm tracking-tight text-emerald-500 uppercase">Cash Taka</span>
+            <span className="text-[8px] text-slate-400 font-bold tracking-widest">USER PORTAL</span>
+          </div>
+
+          {/* Right: Balance spacer element to keep the middle header perfectly centered */}
+          <div className="w-10 h-10" />
+        </div>
+
         {/* Core Mobile and Top Header */}
         <header className={`flex items-center justify-between px-6 py-4 border-b ${isDark ? 'bg-zinc-900 border-zinc-850' : 'bg-white border-slate-200'}`}>
           <div className="flex items-center gap-3">
-            <div className="md:hidden p-2 rounded-xl bg-emerald-500/10 text-emerald-500">
+            <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-500">
               <Wallet className="w-5 h-5 animate-spin-slow" />
             </div>
             <div>
@@ -1159,22 +1210,11 @@ export default function UserDashboard({
               </span>
             )}
             
-            {/* Dark & Light toggle buttons */}
-            <button 
-              id="theme-toggler"
-              onClick={() => setTheme(isDark ? 'light' : 'dark')}
-              className={`p-2 rounded-xl border transition-all ${
-                isDark ? 'border-zinc-800 text-zinc-300 hover:text-white hover:bg-zinc-800' : 'border-slate-200 text-slate-700 hover:bg-slate-100'
-              }`}
-            >
-              {isDark ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4" />}
-            </button>
-
-            {/* Header logout button */}
+            {/* Header logout button (Visible on desktop only) */}
             <button 
               id="header-logout"
               onClick={onLogout}
-              className={`p-2 px-3 rounded-xl border flex items-center gap-1.5 transition-all text-xs font-bold ${
+              className={`hidden md:flex p-2 px-3 rounded-xl border items-center gap-1.5 transition-all text-xs font-bold ${
                 isDark 
                   ? 'border-zinc-800 text-rose-400 hover:bg-rose-500/10 hover:border-rose-500/20' 
                   : 'border-slate-200 text-rose-600 hover:bg-rose-50 hover:border-rose-200'
@@ -1189,10 +1229,10 @@ export default function UserDashboard({
 
         {/* Dynamic Running Notice Marquee */}
         {systemSettings.notices && (
-          <div className="bg-emerald-500/10 border-b border-emerald-500/15 py-2.5 px-6 overflow-hidden flex items-center gap-3">
-            <span className="bg-emerald-600 text-white font-black text-[9px] uppercase tracking-wider px-2 py-0.5 rounded shadow">NOTICE</span>
+          <div className="bg-emerald-500/10 border-b border-emerald-500/15 py-2.5 px-6 overflow-hidden flex items-center gap-3 shadow-xs">
+            <span className="bg-emerald-600 text-white font-black text-[9px] uppercase tracking-wider px-2 py-0.5 rounded shadow-sm">NOTICE</span>
             <div className="flex-1 overflow-hidden relative h-5">
-              <div className="absolute whitespace-nowrap animate-marquee text-xs font-semibold text-emerald-400/95">
+              <div className="absolute whitespace-nowrap animate-marquee text-xs font-semibold text-emerald-800">
                 {systemSettings.notices}
               </div>
             </div>
@@ -1241,28 +1281,6 @@ export default function UserDashboard({
           {/* A. DASHBOARD VIEW (HOME) */}
           {activeTab === 'dashboard' && (
             <div className="space-y-6">
-              
-              {/* Promo Banner Card */}
-              <div className="p-6 rounded-3xl bg-gradient-to-br from-emerald-900/40 to-emerald-950/20 border border-emerald-500/20 relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-6 shadow-xl">
-                <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/5 rounded-full blur-3xl pointer-events-none"></div>
-                <div className="space-y-2 z-10 text-center md:text-left">
-                  <h3 className="text-lg font-black text-white">{systemSettings.bannerTitle || "Premium Smart Investment"}</h3>
-                  <p className="text-xs text-slate-300 max-w-xl leading-relaxed">{systemSettings.bannerMessage || "Participate in flexible plans today."}</p>
-                  <p className="text-[10px] text-emerald-400 font-semibold uppercase tracking-wider flex items-center justify-center md:justify-start gap-1">
-                    <Flame className="w-3.5 h-3.5" /> High Demand Active Portfolios
-                  </p>
-                </div>
-                <button 
-                  id="btn-action-viewplan"
-                  onClick={() => {
-                    const el = document.getElementById('plans-grid-section');
-                    if(el) el.scrollIntoView({ behavior: 'smooth' });
-                  }}
-                  className="bg-emerald-500 text-zinc-950 hover:bg-emerald-400 font-bold text-xs uppercase tracking-widest px-5 py-3 rounded-2xl shadow-lg transition-transform hover:-translate-y-0.5 shrink-0"
-                >
-                  Acquire Plans
-                </button>
-              </div>
 
               {/* Official Notice Board */}
               {systemSettings.notices && (
@@ -1280,7 +1298,7 @@ export default function UserDashboard({
               {/* Wallet & Stats grid */}
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 
-                <div className={`p-5 rounded-3xl border ${isDark ? 'bg-zinc-900 border-zinc-850' : 'bg-white border-slate-200'} relative overflow-hidden transition-all hover:border-emerald-500/30`}>
+                <div className="p-5 rounded-3xl border bg-white border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.02)] relative overflow-hidden transition-all hover:border-emerald-500/30 hover:shadow-md duration-300">
                   <div className="p-2.5 rounded-xl bg-emerald-500/10 text-emerald-500 inline-block mb-3">
                     <Wallet className="w-5 h-5" />
                   </div>
@@ -1288,15 +1306,15 @@ export default function UserDashboard({
                   <p className="text-2xl font-black text-emerald-500 mt-1">৳{profile.walletBalance.toLocaleString()}</p>
                 </div>
 
-                <div className={`p-5 rounded-3xl border ${isDark ? 'bg-zinc-900 border-zinc-850' : 'bg-white border-slate-200'} relative overflow-hidden transition-all hover:border-emerald-500/30`}>
+                <div className="p-5 rounded-3xl border bg-white border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.02)] relative overflow-hidden transition-all hover:border-emerald-500/30 hover:shadow-md duration-300">
                   <div className="p-2.5 rounded-xl bg-emerald-500/10 text-emerald-500 inline-block mb-3">
                     <TrendingUp className="w-5 h-5" />
                   </div>
                   <span className="block text-[10px] text-slate-400 uppercase tracking-wider font-semibold">Active Investments</span>
-                  <p className="text-2xl font-black text-white mt-1">৳{profile.totalInvested.toLocaleString()}</p>
+                  <p className="text-2xl font-black text-slate-800 mt-1">৳{profile.totalInvested.toLocaleString()}</p>
                 </div>
 
-                <div className={`p-5 rounded-3xl border ${isDark ? 'bg-zinc-900 border-zinc-850' : 'bg-white border-slate-200'} relative overflow-hidden transition-all hover:border-emerald-500/30`}>
+                <div className="p-5 rounded-3xl border bg-white border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.02)] relative overflow-hidden transition-all hover:border-emerald-500/30 hover:shadow-md duration-300">
                   <div className="p-2.5 rounded-xl bg-emerald-500/10 text-emerald-500 inline-block mb-3">
                     <ArrowDownLeft className="w-5 h-5" />
                   </div>
@@ -1304,7 +1322,7 @@ export default function UserDashboard({
                   <p className="text-2xl font-black text-emerald-400 mt-1">৳{profile.totalEarned.toLocaleString()}</p>
                 </div>
 
-                <div className={`p-5 rounded-3xl border ${isDark ? 'bg-zinc-900 border-zinc-850' : 'bg-white border-slate-200'} relative overflow-hidden transition-all hover:border-emerald-500/30`}>
+                <div className="p-5 rounded-3xl border bg-white border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.02)] relative overflow-hidden transition-all hover:border-emerald-500/30 hover:shadow-md duration-300">
                   <div className="p-2.5 rounded-xl bg-emerald-500/10 text-emerald-500 inline-block mb-3">
                     <ArrowUpRight className="w-5 h-5" />
                   </div>
@@ -1330,39 +1348,37 @@ export default function UserDashboard({
                     allPlans.map((plan) => (
                       <div 
                         key={plan.id}
-                        className={`p-6 rounded-3xl border flex flex-col justify-between transition-all relative overflow-hidden hover:border-emerald-500 hover:shadow-lg ${
-                          isDark ? 'bg-zinc-900 border-zinc-850' : 'bg-white border-slate-200'
-                        }`}
+                        className="p-6 rounded-3xl border flex flex-col justify-between transition-all relative overflow-hidden bg-white border-slate-150 shadow-[0_8px_30px_rgba(0,0,0,0.12)] hover:shadow-[0_20px_50px_rgba(0,0,0,0.18)] hover:border-emerald-500 duration-300 hover:-translate-y-1.5"
                       >
                         <div>
                           <div className="flex justify-between items-center mb-4">
-                            <span className="bg-emerald-500/10 text-emerald-500 text-[10px] font-extrabold uppercase tracking-widest px-2.5 py-1 rounded-xl">VIP Package</span>
-                            <span className="text-xs font-semibold text-slate-400">৳{plan.cost} Cost</span>
+                            <span className="bg-emerald-500/10 text-emerald-600 text-[10px] font-extrabold uppercase tracking-widest px-2.5 py-1 rounded-xl">VIP Package</span>
+                            <span className="text-xs font-bold text-slate-900">৳{plan.cost} Cost</span>
                           </div>
-                          <h4 className="text-md font-black tracking-tight">{plan.name}</h4>
-                          <p className="text-slate-500 text-xs mt-1.5">Accrue guaranteed daily profits credited directly to your digital vault.</p>
-
+                          <h4 className="text-md font-black tracking-tight text-slate-950">{plan.name}</h4>
+                          <p className="text-slate-800 text-xs mt-1.5 leading-relaxed">Accrue guaranteed daily profits credited directly to your digital vault.</p>
+ 
                           {/* Stats parameters */}
-                          <div className="my-6 space-y-2 border-t border-b border-zinc-800/40 py-4">
+                          <div className="my-6 space-y-2 border-t border-b border-slate-250 py-4">
                             <div className="flex justify-between text-xs">
-                              <span className="text-slate-400">Daily Profit:</span>
-                              <span className="font-bold text-emerald-400">৳{plan.dailyBonus}</span>
+                              <span className="text-slate-500">Daily Profit:</span>
+                              <span className="font-bold text-emerald-600">৳{plan.dailyBonus}</span>
                             </div>
                             <div className="flex justify-between text-xs">
-                              <span className="text-slate-400">Duration:</span>
-                              <span className="font-bold text-white">{plan.durationDays} Days</span>
+                              <span className="text-slate-500">Duration:</span>
+                              <span className="font-bold text-slate-900">{plan.durationDays} Days</span>
                             </div>
                             <div className="flex justify-between text-xs">
-                              <span className="text-slate-400">Total Return:</span>
-                              <span className="font-black text-emerald-500">৳{plan.dailyBonus * plan.durationDays}</span>
+                              <span className="text-slate-500">Total Return:</span>
+                              <span className="font-black text-emerald-700">৳{plan.dailyBonus * plan.durationDays}</span>
                             </div>
                           </div>
                         </div>
-
+ 
                         <button 
                           id={`btn-buy-${plan.id}`}
                           onClick={() => handlePurchasePlan(plan)}
-                          className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 rounded-2xl text-xs uppercase tracking-wider block text-center shadow transition-all"
+                          className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 rounded-2xl text-xs uppercase tracking-wider block text-center shadow transition-all duration-300 hover:shadow-lg"
                         >
                           Unlock Portfolio
                         </button>
@@ -1381,14 +1397,14 @@ export default function UserDashboard({
                   </div>
                 </div>
 
-                <div className={`border rounded-3xl overflow-hidden ${isDark ? 'bg-zinc-900 border-zinc-850' : 'bg-white border-slate-200'}`}>
+                <div className="border rounded-3xl overflow-hidden bg-white border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.02)]">
                   {myInvestments.length === 0 ? (
                     <div className="p-8 text-center text-xs text-slate-500">You do not have any subscribed portfolios yet. Choose an investment above!</div>
                   ) : (
                     <div className="overflow-x-auto">
                       <table className="w-full text-left text-xs border-collapse">
                         <thead>
-                          <tr className={`border-b text-[10px] font-black uppercase tracking-wider ${isDark ? 'border-zinc-800 text-slate-400' : 'border-slate-100 text-slate-500'}`}>
+                          <tr className="border-b text-[10px] font-black uppercase tracking-wider border-slate-100 text-slate-500 bg-slate-50/50">
                             <th className="p-4">Portfolio Plan</th>
                             <th className="p-4">Purchase Price</th>
                             <th className="p-4">Daily Yield</th>
@@ -1397,19 +1413,19 @@ export default function UserDashboard({
                             <th className="p-4">Investment State</th>
                           </tr>
                         </thead>
-                        <tbody className="divide-y divide-zinc-800/40">
+                        <tbody className="divide-y divide-slate-100">
                           {myInvestments.map((invest) => {
                             const isExpired = invest.status === 'expired';
                             return (
-                              <tr key={invest.id} className="hover:bg-zinc-800/20">
-                                <td className="p-4 font-bold text-white">{invest.planName}</td>
-                                <td className="p-4 text-emerald-500 font-semibold">৳{invest.cost}</td>
-                                <td className="p-4 text-emerald-400 font-semibold">৳{invest.dailyBonus}/day</td>
-                                <td className="p-4 text-emerald-555 font-bold">৳{invest.daysClaimed * invest.dailyBonus}</td>
-                                <td className="p-4 text-slate-400">{invest.daysClaimed} / {invest.durationDays || 30} Days</td>
+                              <tr key={invest.id} className="hover:bg-slate-50/80 transition-colors">
+                                <td className="p-4 font-bold text-slate-800">{invest.planName}</td>
+                                <td className="p-4 text-emerald-600 font-semibold">৳{invest.cost}</td>
+                                <td className="p-4 text-emerald-500 font-semibold">৳{invest.dailyBonus}/day</td>
+                                <td className="p-4 text-emerald-600 font-bold">৳{invest.daysClaimed * invest.dailyBonus}</td>
+                                <td className="p-4 text-slate-500">{invest.daysClaimed} / {invest.durationDays || 30} Days</td>
                                 <td className="p-4">
                                   <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider ${
-                                    isExpired ? 'bg-zinc-850 border border-zinc-700 text-slate-400' : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                                    isExpired ? 'bg-slate-100 border border-slate-200 text-slate-450' : 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/10'
                                   }`}>
                                     {invest.status}
                                   </span>
@@ -1455,8 +1471,8 @@ export default function UserDashboard({
                           onClick={() => setDepositMethod(method)}
                           className={`p-3 rounded-2xl text-xs font-bold border transition-all ${
                             depositMethod === method 
-                              ? 'border-emerald-500 bg-emerald-500/10 text-emerald-400' 
-                              : 'border-zinc-800 text-slate-400 hover:text-white'
+                              ? 'border-emerald-500 bg-emerald-500/10 text-emerald-600' 
+                              : 'border-slate-200 text-slate-600 hover:bg-slate-50'
                           }`}
                         >
                           {method}
@@ -1519,25 +1535,25 @@ export default function UserDashboard({
                   <h4 className="text-xs font-black uppercase tracking-widest text-emerald-400 mb-4">Official Payment Addresses</h4>
                   
                   <div className="space-y-4">
-                    <div className="flex justify-between items-center border-b border-zinc-800/40 pb-3">
+                    <div className="flex justify-between items-center border-b border-slate-100 pb-3">
                       <div>
-                        <p className="text-xs font-extrabold text-white">bKash (Send Money)</p>
-                        <p className="text-[11px] text-slate-400 mt-0.5">{systemSettings.bkashNumber || "017XXXXXXXX"}</p>
+                        <p className="text-xs font-extrabold text-slate-800">bKash (Send Money)</p>
+                        <p className="text-[11px] text-slate-500 mt-0.5">{systemSettings.bkashNumber || "017XXXXXXXX"}</p>
                       </div>
-                      <span className="text-[10px] font-bold bg-emerald-500/15 text-emerald-400 px-2 py-0.5 rounded">Active</span>
+                      <span className="text-[10px] font-bold bg-emerald-500/10 text-emerald-600 px-2 py-0.5 rounded">Active</span>
                     </div>
 
                     <div className="flex justify-between items-center pb-1">
                       <div>
-                        <p className="text-xs font-extrabold text-white">Nagad (Send Money)</p>
-                        <p className="text-[11px] text-slate-400 mt-0.5">{systemSettings.nagadNumber || "019XXXXXXXX"}</p>
+                        <p className="text-xs font-extrabold text-slate-800">Nagad (Send Money)</p>
+                        <p className="text-[11px] text-slate-500 mt-0.5">{systemSettings.nagadNumber || "019XXXXXXXX"}</p>
                       </div>
-                      <span className="text-[10px] font-bold bg-emerald-500/15 text-emerald-400 px-2 py-0.5 rounded">Active</span>
+                      <span className="text-[10px] font-bold bg-emerald-500/10 text-emerald-600 px-2 py-0.5 rounded">Active</span>
                     </div>
                   </div>
 
-                  <div className="p-3 bg-zinc-950/40 rounded-2xl border border-zinc-800 mt-4">
-                    <p className="text-[9px] text-slate-500 leading-normal">
+                  <div className="p-3 bg-slate-50 rounded-2xl border border-slate-150 mt-4 shadow-[0_4px_12px_rgba(0,0,0,0.02)]">
+                    <p className="text-[9px] text-slate-600 leading-normal">
                       ⚠️ Instruction: Please send the designated amount to any above manual wallet first, copy your Transaction Reference ID, and fill details accurately. Admin approval takes 1-3 hours.
                     </p>
                   </div>
@@ -1552,17 +1568,17 @@ export default function UserDashboard({
                   ) : (
                     <div className="space-y-3 max-h-60 overflow-y-auto">
                       {myDeposits.slice(0, 5).map((dep) => (
-                        <div key={dep.id} className="flex justify-between items-center bg-zinc-950/20 p-3 rounded-xl border border-zinc-850">
+                        <div key={dep.id} className="flex justify-between items-center bg-white p-3 rounded-xl border border-slate-150 shadow-[0_4px_12px_rgba(0,0,0,0.05)] hover:shadow-md transition-all duration-300">
                           <div>
-                            <p className="text-[11px] font-extrabold text-white">৳{dep.amount} ({dep.paymentMethod})</p>
+                            <p className="text-[11px] font-extrabold text-slate-900">৳{dep.amount} ({dep.paymentMethod})</p>
                             <p className="text-[9px] text-slate-500 mt-0.5">TRX: {dep.transactionId}</p>
                           </div>
                           <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${
                             dep.status === 'approved' 
-                              ? 'bg-emerald-500/10 text-emerald-400' 
+                              ? 'bg-emerald-500/10 text-emerald-600' 
                               : dep.status === 'rejected' 
-                                ? 'bg-rose-500/10 text-rose-400' 
-                                : 'bg-amber-300/10 text-amber-400'
+                                ? 'bg-rose-500/10 text-rose-600' 
+                                : 'bg-amber-105 text-amber-700'
                           }`}>
                             {dep.status}
                           </span>
@@ -1611,8 +1627,8 @@ export default function UserDashboard({
                           onClick={() => setWithdrawMethod(method)}
                           className={`p-3 rounded-2xl text-xs font-bold border transition-all ${
                             withdrawMethod === method 
-                              ? 'border-emerald-500 bg-emerald-500/10 text-emerald-400' 
-                              : 'border-zinc-805 text-slate-400 hover:text-white'
+                              ? 'border-emerald-500 bg-emerald-500/10 text-emerald-600' 
+                              : 'border-slate-200 text-slate-600 hover:bg-slate-50'
                           }`}
                         >
                           {method}
@@ -1689,17 +1705,17 @@ export default function UserDashboard({
                   ) : (
                     <div className="space-y-3 max-h-60 overflow-y-auto">
                       {myWithdrawals.slice(0, 5).map((w) => (
-                        <div key={w.id} className="flex justify-between items-center bg-zinc-950/20 p-3 rounded-xl border border-zinc-850">
+                        <div key={w.id} className="flex justify-between items-center bg-white p-3 rounded-xl border border-slate-150 shadow-[0_4px_12px_rgba(0,0,0,0.05)] hover:shadow-md transition-all duration-300">
                           <div>
-                            <p className="text-[11px] font-extrabold text-white">৳{w.amount} ({w.paymentMethod})</p>
+                            <p className="text-[11px] font-extrabold text-slate-900">৳{w.amount} ({w.paymentMethod})</p>
                             <p className="text-[9px] text-slate-500 mt-0.5">Acc No: {w.targetNumber}</p>
                           </div>
                           <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${
                             w.status === 'approved' 
-                              ? 'bg-emerald-500/10 text-emerald-400' 
+                              ? 'bg-emerald-500/10 text-emerald-600' 
                               : w.status === 'rejected' 
-                                ? 'bg-rose-500/10 text-rose-400' 
-                                : 'bg-amber-300/10 text-amber-400'
+                                ? 'bg-rose-500/10 text-rose-600' 
+                                : 'bg-amber-105 text-amber-700'
                           }`}>
                             {w.status}
                           </span>
@@ -1729,21 +1745,21 @@ export default function UserDashboard({
                   {myTxLogs.map((log) => {
                     const isCredit = ['deposit', 'bonus', 'referral'].includes(log.type);
                     return (
-                      <div key={log.id} className="flex justify-between items-center bg-zinc-950/20 p-4 rounded-2xl border border-zinc-850/60 hover:bg-zinc-900/30 transition-all">
+                      <div key={log.id} className="flex justify-between items-center bg-white p-4 rounded-2xl border border-slate-150 shadow-[0_4px_15px_rgba(0,0,0,0.06)] hover:shadow-[0_8px_25px_rgba(0,0,0,0.12)] hover:border-slate-200 transition-all">
                         <div className="flex gap-3">
-                          <span className={`p-2 rounded-xl text-xs font-bold shrink-0 self-center ${
+                          <span className={`p-2 rounded-xl text-xs font-black shrink-0 self-center border ${
                             isCredit 
-                              ? 'bg-emerald-500/10 text-emerald-400' 
-                              : 'bg-rose-500/10 text-rose-400'
+                              ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/15' 
+                              : 'bg-rose-500/10 text-rose-600 border-rose-500/15'
                           }`}>
                             {log.type.toUpperCase()}
                           </span>
                           <div>
-                            <p className="text-xs font-bold text-white leading-snug">{log.details}</p>
+                            <p className="text-xs font-black text-slate-900 leading-snug">{log.details}</p>
                             <p className="text-[10px] text-slate-500 mt-0.5">{new Date(log.createdAt).toLocaleString()}</p>
                           </div>
                         </div>
-                        <span className={`text-md font-black shrink-0 ${isCredit ? 'text-emerald-400' : 'text-rose-500'}`}>
+                        <span className={`text-sm font-black shrink-0 ${isCredit ? 'text-emerald-600' : 'text-rose-600'}`}>
                           {isCredit ? '+' : '-'} ৳{log.amount}
                         </span>
                       </div>
@@ -1860,12 +1876,12 @@ export default function UserDashboard({
                 ) : (
                   <div className="space-y-3">
                     {referralPayouts.map((rec) => (
-                      <div key={rec.id} className="flex justify-between items-center bg-zinc-950/20 p-3 rounded-xl border border-zinc-855">
+                      <div key={rec.id} className="flex justify-between items-center bg-white p-3 rounded-xl border border-slate-150 shadow-[0_4px_12px_rgba(0,0,0,0.05)] hover:shadow-md transition-all duration-300">
                         <div>
-                          <p className="text-[11px] font-semibold text-white">Referred User Deposit Complete</p>
+                          <p className="text-[11px] font-extrabold text-slate-900">Referred User Deposit Complete</p>
                           <p className="text-[9px] text-slate-500 mt-0.5">Referee: {rec.refereeEmail} | Invested: ৳{rec.amountInvested}</p>
                         </div>
-                        <span className="text-xs font-black text-emerald-400">+ ৳{rec.commissionCredited} Commission</span>
+                        <span className="text-xs font-black text-emerald-600">+ ৳{rec.commissionCredited} Commission</span>
                       </div>
                     ))}
                   </div>
@@ -1950,13 +1966,13 @@ export default function UserDashboard({
                           }`}
                         >
                           <div className="flex justify-between items-center mb-2">
-                            <span className="font-extrabold text-xs text-white leading-snug truncate">{t.subject}</span>
+                            <span className="font-extrabold text-xs text-slate-900 leading-snug truncate">{t.subject}</span>
                             <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider ${
                               t.status === 'answered' 
-                                ? 'bg-emerald-500/15 text-emerald-400' 
+                                ? 'bg-emerald-100 text-emerald-700' 
                                 : t.status === 'closed' 
-                                  ? 'bg-zinc-800 text-slate-400' 
-                                  : 'bg-amber-400/15 text-amber-500'
+                                  ? 'bg-slate-100 text-slate-500' 
+                                  : 'bg-amber-100 text-amber-700'
                             }`}>
                               {t.status}
                             </span>
@@ -1974,22 +1990,22 @@ export default function UserDashboard({
                 {/* Direct Message Active chat console */}
                 {activeTicket && (
                   <div className={`p-6 rounded-3xl border ${isDark ? 'bg-zinc-900 border-zinc-855' : 'bg-white border-slate-200'} space-y-4`}>
-                    <div className="flex justify-between items-center border-b border-zinc-800/40 pb-3">
+                    <div className="flex justify-between items-center border-b border-slate-100 pb-3">
                       <div>
-                        <h4 className="text-xs font-bold text-white uppercase tracking-wider">Ticket Thread Conversation</h4>
+                        <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider">Ticket Thread Conversation</h4>
                         <p className="text-[10px] text-slate-500 mt-0.5">{activeTicket.subject}</p>
                       </div>
                       <button 
                         id="btn-close-chat-view"
                         onClick={() => setActiveTicket(null)}
-                        className="text-xs text-slate-500 hover:text-white"
+                        className="text-xs text-slate-500 hover:text-slate-900"
                       >
                         Minimize
                       </button>
                     </div>
 
                     {/* Chat messaging logs */}
-                    <div className="space-y-3 h-64 overflow-y-auto p-2 bg-zinc-950/45 rounded-2xl border border-zinc-850">
+                    <div className="space-y-3 h-64 overflow-y-auto p-2 bg-slate-50 rounded-2xl border border-slate-150 shadow-inner">
                       {ticketMessages.map((msg) => {
                         const isAdmin = msg.senderRole === 'admin';
                         return (
@@ -2177,18 +2193,18 @@ export default function UserDashboard({
             return (
               <div className="space-y-6">
                 {/* Header Banner */}
-                <div className={`p-6 rounded-3xl border ${isDark ? 'bg-zinc-900 border-zinc-850' : 'bg-white border-slate-200'} flex flex-col md:flex-row justify-between items-start md:items-center gap-4`}>
+                <div className="p-6 rounded-3xl border bg-white border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.02)] flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                   <div>
-                    <h3 className="text-lg font-black tracking-tight flex items-center gap-2 text-white">
-                      <Tv className="w-5 h-5 text-amber-400" />
+                    <h3 className="text-lg font-black tracking-tight flex items-center gap-2 text-slate-800">
+                      <Tv className="w-5 h-5 text-amber-500" />
                       Daily Ads Tasks Portal
                     </h3>
-                    <p className="text-xs text-slate-400 mt-1">
+                    <p className="text-xs text-slate-500 mt-1">
                       Complete tasks assigned to your active investment plans to instantly earn Cash Taka rewards set by admin.
                     </p>
                   </div>
                   {activeInvestments.length > 0 && (
-                    <div className="bg-emerald-500/10 text-emerald-400 text-xs font-bold px-3.5 py-1.5 rounded-2xl border border-emerald-500/15">
+                    <div className="bg-emerald-500/10 text-emerald-600 text-xs font-bold px-3.5 py-1.5 rounded-2xl border border-emerald-500/15">
                       {activeInvestments.length} Active Plans Registered
                     </div>
                   )}
@@ -2197,14 +2213,14 @@ export default function UserDashboard({
                 {/* Statistics Grid */}
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                   {/* Card 1: Completed / Limit */}
-                  <div className={`p-5 rounded-3xl border ${isDark ? 'bg-zinc-900 border-zinc-855' : 'bg-white border-slate-200'}`}>
+                  <div className="p-5 rounded-3xl border bg-white border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.02)] hover:shadow-md transition-all duration-300">
                     <span className="block text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-2">Today's Progress</span>
                     <div className="flex items-baseline gap-1.5">
-                      <span className="text-2xl font-black text-white">{completedTasksCount}</span>
+                      <span className="text-2xl font-black text-slate-800">{completedTasksCount}</span>
                       <span className="text-xs text-slate-500">/ {totalTasksLimit} Tasks</span>
                     </div>
                     {/* Progress Bar */}
-                    <div className="w-full h-1.5 bg-zinc-800 rounded-full mt-3 overflow-hidden">
+                    <div className="w-full h-1.5 bg-slate-105 rounded-full mt-3 overflow-hidden">
                       <div 
                         className="bg-emerald-500 h-full rounded-full transition-all duration-500"
                         style={{ width: `${totalTasksLimit > 0 ? (completedTasksCount / totalTasksLimit) * 100 : 0}%` }}
@@ -2213,36 +2229,36 @@ export default function UserDashboard({
                   </div>
 
                   {/* Card 2: Today's Earnings */}
-                  <div className={`p-5 rounded-3xl border ${isDark ? 'bg-zinc-900 border-zinc-855' : 'bg-white border-slate-200'}`}>
+                  <div className="p-5 rounded-3xl border bg-white border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.02)] hover:shadow-md transition-all duration-300">
                     <span className="block text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-2">Today's Earnings</span>
-                    <span className="text-2xl font-black text-emerald-400">৳{earningsToday} BDT</span>
+                    <span className="text-2xl font-black text-emerald-600">৳{earningsToday} BDT</span>
                     <p className="text-[10px] text-slate-500 mt-1">Claimed securely to main wallet</p>
                   </div>
 
                   {/* Card 3: Remaining Tasks */}
-                  <div className={`p-5 rounded-3xl border ${isDark ? 'bg-zinc-900 border-zinc-855' : 'bg-white border-slate-200'}`}>
+                  <div className="p-5 rounded-3xl border bg-white border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.02)] hover:shadow-md transition-all duration-300">
                     <span className="block text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-2">Tasks Remaining</span>
-                    <span className="text-2xl font-black text-amber-500">{remainingTasksCount} Tasks</span>
+                    <span className="text-2xl font-black text-amber-600">{remainingTasksCount} Tasks</span>
                     <p className="text-[10px] text-slate-500 mt-1">Resets at 12:00 AM daily</p>
                   </div>
 
                   {/* Card 4: Daily Limit */}
-                  <div className={`p-5 rounded-3xl border ${isDark ? 'bg-zinc-900 border-zinc-855' : 'bg-white border-slate-200'}`}>
+                  <div className="p-5 rounded-3xl border bg-white border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.02)] hover:shadow-md transition-all duration-300">
                     <span className="block text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-2">Your Task Limit</span>
-                    <span className="text-2xl font-black text-indigo-400">{totalTasksLimit} Tasks/Day</span>
+                    <span className="text-2xl font-black text-indigo-600">{totalTasksLimit} Tasks/Day</span>
                     <p className="text-[10px] text-slate-500 mt-1">5 tasks per active portfolio</p>
                   </div>
                 </div>
 
                 {/* Task List Grid */}
                 {totalTasksLimit === 0 ? (
-                  <div className={`p-10 text-center rounded-3xl border ${isDark ? 'bg-zinc-900 border-zinc-850' : 'bg-white border-slate-200'} space-y-4`}>
-                    <div className="mx-auto w-12 h-12 rounded-full bg-amber-500/10 text-amber-500 flex items-center justify-center">
+                  <div className="p-10 text-center rounded-3xl border bg-white border-slate-100 shadow-[0_12px_40px_rgba(0,0,0,0.03)] space-y-4">
+                    <div className="mx-auto w-12 h-12 rounded-full bg-amber-500/10 text-amber-600 flex items-center justify-center">
                       <AlertCircle className="w-6 h-6" />
                     </div>
                     <div className="max-w-md mx-auto">
-                      <h4 className="font-bold text-white text-sm">No Active Investment Plans Registered</h4>
-                      <p className="text-xs text-slate-450 mt-1 leading-relaxed">
+                      <h4 className="font-bold text-slate-800 text-sm">No Active Investment Plans Registered</h4>
+                      <p className="text-xs text-slate-500 mt-1 leading-relaxed">
                         You do not have any active investment plans to unlock daily ad tasks. Purchase a plan to start earning money!
                       </p>
                     </div>
@@ -2267,41 +2283,41 @@ export default function UserDashboard({
                             key={ad.uniqueTaskId || index} 
                             className={`p-5 rounded-3xl border flex flex-col justify-between transition-all ${
                               isCompleted 
-                                ? 'bg-zinc-950/40 border-zinc-900 opacity-60' 
-                                : 'bg-zinc-900 border-zinc-850 hover:border-zinc-700'
+                                ? 'bg-slate-50 border-slate-150 opacity-60 shadow-xs' 
+                                : 'bg-white border-slate-150 hover:border-emerald-500 shadow-[0_8px_30px_rgba(0,0,0,0.15)] duration-300 hover:-translate-y-1 hover:shadow-[0_15px_40px_rgba(0,0,0,0.22)]'
                             }`}
                           >
                             <div>
                               <div className="flex justify-between items-start gap-2 mb-3">
-                                <div className="p-2 bg-zinc-850 rounded-2xl text-amber-400">
+                                <div className={`p-2 rounded-2xl ${isCompleted ? 'bg-slate-100 text-slate-400' : 'bg-amber-100 text-amber-700'}`}>
                                   <Tv className="w-5 h-5" />
                                 </div>
                                 {isCompleted ? (
-                                  <span className="bg-emerald-500/10 text-emerald-400 text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border border-emerald-500/15">
+                                  <span className="bg-emerald-50 text-emerald-700 text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border border-emerald-200 font-bold">
                                     ✓ Completed Today
                                   </span>
                                 ) : (
-                                  <span className="bg-amber-400/10 text-amber-400 text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border border-amber-400/15 font-bold">
+                                  <span className="bg-amber-50 text-amber-700 text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border border-amber-200 font-bold">
                                     ৳{ad.reward} BDT
                                   </span>
                                 )}
                               </div>
-                              <h5 className="font-bold text-xs text-white line-clamp-1">{ad.title}</h5>
-                              <p className="text-[10px] text-amber-500 font-semibold mt-0.5">Plan: {ad.planName}</p>
+                              <h5 className={`font-black text-sm line-clamp-1 ${isCompleted ? 'text-slate-400' : 'text-slate-950'}`}>{ad.title}</h5>
+                              <p className={`text-xs font-extrabold mt-1 ${isCompleted ? 'text-slate-400' : 'text-slate-850'}`}>Plan: {ad.planName}</p>
                               <p className="text-[10px] text-slate-500 mt-1">Duration: {ad.duration || 10} Seconds</p>
                             </div>
 
-                            <div className="mt-5 pt-3 border-t border-zinc-850/60">
+                            <div className="mt-5 pt-3 border-t border-slate-100">
                               {isCompleted ? (
                                 <button
-                                  className="w-full py-2 bg-zinc-800 text-slate-500 font-bold text-xs rounded-xl cursor-not-allowed"
+                                  className="w-full py-2 bg-slate-100 text-slate-400 font-bold text-xs rounded-xl cursor-not-allowed"
                                   disabled
                                 >
                                   Task Completed
                                 </button>
                               ) : isLimitReached ? (
                                 <button
-                                  className="w-full py-2 bg-zinc-800 text-slate-500 font-bold text-xs rounded-xl cursor-not-allowed"
+                                  className="w-full py-2 bg-slate-100 text-slate-400 font-bold text-xs rounded-xl cursor-not-allowed"
                                   disabled
                                   title="Daily tasks limit reached based on your active plans!"
                                 >
@@ -2310,7 +2326,7 @@ export default function UserDashboard({
                               ) : (
                                 <button
                                   onClick={() => handleStartTask(ad)}
-                                  className="w-full py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl transition-all shadow"
+                                  className="w-full py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl transition-all shadow-[0_4px_12px_rgba(16,185,129,0.3)] hover:shadow-lg"
                                 >
                                   Start Ad Watching
                                 </button>
@@ -2357,10 +2373,10 @@ export default function UserDashboard({
                       }`}
                     >
                       <div className="flex justify-between items-center">
-                        <span className="font-bold text-xs text-white">{n.title}</span>
-                        <span className="text-[9px] text-slate-550">{new Date(n.createdAt).toLocaleDateString()}</span>
+                        <span className="font-bold text-xs text-slate-900">{n.title}</span>
+                        <span className="text-[9px] text-slate-500">{new Date(n.createdAt).toLocaleDateString()}</span>
                       </div>
-                      <p className="text-xs text-slate-400 mt-1 leading-relaxed">{n.message}</p>
+                      <p className="text-xs text-slate-700 mt-1 leading-relaxed">{n.message}</p>
                     </div>
                   ))}
                 </div>
@@ -2535,8 +2551,8 @@ export default function UserDashboard({
                   <div className="w-3 h-3 rounded-full bg-amber-500/80" />
                   <div className="w-3 h-3 rounded-full bg-emerald-500/80" />
                 </div>
-                <div className="h-5 bg-zinc-900 rounded-lg px-3 text-[10px] text-slate-500 flex items-center gap-1.5 max-w-[280px] md:max-w-xs truncate font-mono">
-                  <span className="text-emerald-500/80">secure-adstream://</span>{activeAd.adLink}
+                <div className="text-[11px] font-bold text-slate-400 tracking-wide font-sans">
+                  Sponsor Advertisement Channel
                 </div>
               </div>
               <span className="bg-amber-400/10 text-amber-400 text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded border border-amber-400/15">
@@ -2546,20 +2562,8 @@ export default function UserDashboard({
 
             {/* Inner Content Area */}
             <div className="flex-1 bg-black flex flex-col justify-center items-center p-4 relative overflow-hidden">
-              {/* Fallback & Helper links in case of iframe blocking policies */}
-              <div className="absolute top-3 left-3 right-3 z-10 flex flex-col items-center">
-                <a 
-                  href={activeAd.adLink} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="bg-zinc-900/90 text-amber-400 hover:text-amber-300 border border-zinc-800 text-[10px] font-bold px-4 py-1.5 rounded-full shadow-md backdrop-blur-xs transition-all text-center flex items-center gap-1.5"
-                >
-                  🔗 Having trouble loading? Click here to open Ad in new window
-                </a>
-              </div>
-
               {/* The Ad Frame or Mocking Screen */}
-              <div className="w-full h-full pt-10 pb-4">
+              <div className="w-full h-full pt-2 pb-2">
                 <iframe
                   title={activeAd.title}
                   src={activeAd.adLink}
