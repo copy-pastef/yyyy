@@ -15,6 +15,7 @@ export interface UserProfile {
   totalEarned: number; // in BDT
   referralCode: string; // unique code for referrals
   referredBy?: string; // UID of referrer user
+  referralCommissionPaid?: boolean; // whether the referral commission was already paid to their referrer
   referralCommissionEarned: number; // total commission earned
   status: 'active' | 'suspended';
   isPhoneVerified: boolean;

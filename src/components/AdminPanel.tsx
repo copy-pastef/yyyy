@@ -393,64 +393,7 @@ export default function AdminPanel({
             createdAt: Date.now()
           });
 
-          // f. REFERRAL REWARDS DISTRIBUTION: Triggered ONLY on Referee's very FIRST successful deposit!
-          if (isFirstDeposit && userData.referredBy) {
-            const referrerUid = userData.referredBy;
-            const referrerRef = doc(db, 'users', referrerUid);
-            const referrerSnap = await getDoc(referrerRef);
-
-            if (referrerSnap.exists()) {
-              const referrerData = referrerSnap.data() as UserProfile;
-              
-              // Calculate reward value based on admin configs: Percentage or Fixed
-              let commissionAmount = 0;
-              if (settings.referralType === 'percentage') {
-                commissionAmount = Math.floor((dep.amount * settings.referralValue) / 100);
-              } else {
-                commissionAmount = settings.referralValue;
-              }
-
-              if (commissionAmount > 0) {
-                // Credit referrer's wallet
-                await updateDoc(referrerRef, {
-                  walletBalance: referrerData.walletBalance + commissionAmount,
-                  referralCommissionEarned: (referrerData.referralCommissionEarned || 0) + commissionAmount,
-                  totalEarned: (referrerData.totalEarned || 0) + commissionAmount
-                });
-
-                // Write Referral Reward History
-                await addDoc(collection(db, 'referral_history'), {
-                  referrerUid,
-                  refereeUid: dep.uid,
-                  refereeEmail: dep.userEmail,
-                  amountInvested: dep.amount,
-                  commissionCredited: commissionAmount,
-                  createdAt: Date.now()
-                });
-
-                // Log Referrer transaction
-                await addDoc(collection(db, 'transaction_logs'), {
-                  uid: referrerUid,
-                  userEmail: referrerData.email,
-                  amount: commissionAmount,
-                  type: 'referral',
-                  details: `Referral affiliate reward credited (৳${commissionAmount}) for first deposit of ${dep.userEmail} (৳${dep.amount})`,
-                  createdAt: Date.now()
-                });
-
-                // Notify Referrer
-                await addDoc(collection(db, 'notifications'), {
-                  uid: referrerUid,
-                  title: 'Referral Reward Credited! 💸',
-                  message: `Your referee ${userData.fullName} made their first deposit! You earned ৳${commissionAmount} in commission fees.`,
-                  read: false,
-                  createdAt: Date.now()
-                });
-              }
-            }
-          }
-
-          showAdminAlert("DEPOSIT APPROVED", "Deposit successfully Approved! User balance synced, referral triggers executed.", "success");
+          showAdminAlert("DEPOSIT APPROVED", "Deposit successfully Approved! User balance synced.", "success");
         } catch (err: any) {
           showAdminAlert("ERROR", "Error approving deposit: " + err.message, "error");
         }

@@ -646,9 +646,13 @@ export default function UserDashboard({
       const newBalance = profile.walletBalance - plan.cost;
       const newInvested = profile.totalInvested + plan.cost;
       const userRef = doc(db, 'users', profile.uid);
+      
+      const shouldTriggerReferral = plan.cost > 0 && profile.referredBy && !profile.referralCommissionPaid;
+
       await updateDoc(userRef, {
         walletBalance: newBalance,
-        totalInvested: newInvested
+        totalInvested: newInvested,
+        ...(shouldTriggerReferral ? { referralCommissionPaid: true } : {})
       });
 
       // 3. Log transaction
@@ -669,6 +673,63 @@ export default function UserDashboard({
         read: false,
         createdAt: now
       });
+
+      // 5. REFERRAL REWARDS DISTRIBUTION: Triggered when the referred user purchases their FIRST investment plan!
+      if (shouldTriggerReferral) {
+        const referrerUid = profile.referredBy!;
+        const referrerRef = doc(db, 'users', referrerUid);
+        const referrerSnap = await getDoc(referrerRef);
+
+        if (referrerSnap.exists()) {
+          const referrerData = referrerSnap.data() as UserProfile;
+
+          // Calculate reward value based on admin configs: Percentage of plan cost OR Fixed
+          let commissionAmount = 0;
+          if (systemSettings.referralType === 'percentage') {
+            commissionAmount = Math.floor((plan.cost * systemSettings.referralValue) / 100);
+          } else {
+            commissionAmount = systemSettings.referralValue;
+          }
+
+          if (commissionAmount > 0) {
+            // Credit referrer's wallet
+            await updateDoc(referrerRef, {
+              walletBalance: referrerData.walletBalance + commissionAmount,
+              referralCommissionEarned: (referrerData.referralCommissionEarned || 0) + commissionAmount,
+              totalEarned: (referrerData.totalEarned || 0) + commissionAmount
+            });
+
+            // Write Referral Reward History
+            await addDoc(collection(db, 'referral_history'), {
+              referrerUid,
+              refereeUid: profile.uid,
+              refereeEmail: profile.email,
+              amountInvested: plan.cost,
+              commissionCredited: commissionAmount,
+              createdAt: now
+            });
+
+            // Log Referrer transaction
+            await addDoc(collection(db, 'transaction_logs'), {
+              uid: referrerUid,
+              userEmail: referrerData.email,
+              amount: commissionAmount,
+              type: 'referral',
+              details: `Referral affiliate reward credited (৳${commissionAmount}) for first investment plan purchase of ${profile.email} (${plan.name} costing ৳${plan.cost})`,
+              createdAt: now
+            });
+
+            // Notify Referrer
+            await addDoc(collection(db, 'notifications'), {
+              uid: referrerUid,
+              title: 'Referral Reward Credited! 💸',
+              message: `Your referee ${profile.fullName} subscribed to plan: ${plan.name}! You earned ৳${commissionAmount} in commission fees.`,
+              read: false,
+              createdAt: now
+            });
+          }
+        }
+      }
 
       setPurchaseSuccessAlert({
         show: true,
@@ -1703,7 +1764,7 @@ export default function UserDashboard({
                 <div className={`p-6 rounded-3xl border ${isDark ? 'bg-zinc-900 border-zinc-850' : 'bg-white border-slate-200'} space-y-6`}>
                   <div>
                     <h3 className="text-sm font-bold uppercase tracking-wider text-emerald-400 mb-1">Invite Collaborators</h3>
-                    <p className="text-xs text-slate-400">Share your referral address. You will receive an instant ৳{systemSettings.referralValue}{systemSettings.referralType === 'percentage' ? '%' : ' BDT'} commission as soon as your referrals perform a successful plan deposit!</p>
+                    <p className="text-xs text-slate-400">Share your referral address. You will receive an instant ৳{systemSettings.referralValue}{systemSettings.referralType === 'percentage' ? '%' : ' BDT'} commission as soon as your referrals subscribe to an investment plan!</p>
                   </div>
 
                   <div className="space-y-3">
@@ -1745,7 +1806,7 @@ export default function UserDashboard({
                   
                   <div className="space-y-4 text-xs text-slate-400 leading-relaxed">
                     <p>Commission calculations are fully automated. When a user creates an account utilizing your invite code, their profile is securely bound to your referral tree.</p>
-                    <p>Upon verification/validation of any of their deposits, our financial gateway instantly issues your <strong className="text-emerald-400">{systemSettings.referralValue}{systemSettings.referralType === 'percentage' ? '%' : ' BDT'}</strong> affiliate reward.</p>
+                    <p>When a referred member purchases/activates a premium investment plan, our system instantly issues your <strong className="text-emerald-400">{systemSettings.referralValue}{systemSettings.referralType === 'percentage' ? '%' : ' BDT'}</strong> affiliate reward based on the plan cost.</p>
                     <p className="text-[11px] text-slate-500">Note: Abuse, creating multiple mock accounts, or violating platform terms results in instant wallet block and suspended earnings.</p>
                   </div>
                 </div>
